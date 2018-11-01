@@ -32,7 +32,7 @@ require_relative '../lib/zache'
 # License:: MIT
 class ZacheTest < Minitest::Test
   def test_caches
-    cache = Zache.new
+    cache = Zache.new(sync: false)
     first = cache.get(:hey, lifetime: 5) { Random.rand }
     second = cache.get(:hey) { Random.rand }
     assert(first == second)

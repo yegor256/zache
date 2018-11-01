@@ -27,23 +27,34 @@
 # Copyright:: Copyright (c) 2018 Yegor Bugayenko
 # License:: MIT
 class Zache
-  def initialize
+  def initialize(sync: true)
     @hash = {}
+    @sync = sync
     @mutex = Mutex.new
   end
 
   def get(key, lifetime: 60 * 60)
-    @mutex.synchronize do
-      rec = @hash[key]
-      rec = nil if !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
-      if rec.nil?
-        @hash[key] = {
-          value: yield,
-          start: Time.now,
-          lifetime: lifetime
-        }
+    if @sync
+      @mutex.synchronize do
+        calc(key, lifetime) { yield }
       end
-      @hash[key][:value]
+    else
+      calc(key, lifetime) { yield }
     end
+  end
+
+  private
+
+  def calc(key, lifetime)
+    rec = @hash[key]
+    rec = nil if !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+    if rec.nil?
+      @hash[key] = {
+        value: yield,
+        start: Time.now,
+        lifetime: lifetime
+      }
+    end
+    @hash[key][:value]
   end
 end
