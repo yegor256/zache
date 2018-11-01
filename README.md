@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/yegor256/zache.svg)](https://travis-ci.org/yegor256/zache)
 [![Gem Version](https://badge.fury.io/rb/zache.svg)](http://badge.fury.io/rb/zache)
-[![Maintainability](https://api.codeclimate.com/v1/badges/24fc3acdf781d98b8749/maintainability)](https://codeclimate.com/github/yegor256/zache/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c136afe340fa94f14696/maintainability)](https://codeclimate.com/github/yegor256/zache/maintainability)
 
 It's a simple Ruby gem for in-memory cache.
 
