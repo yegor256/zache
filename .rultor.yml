@@ -1,0 +1,23 @@
+assets:
+  rubygems.yml: zerocracy/home#assets/rubygems.yml
+install: |-
+  export GEM_HOME=~/.ruby
+  export GEM_PATH=$GEM_HOME:$GEM_PATH
+release:
+  script: |-
+    bundle install
+    rake
+    rm -rf *.gem
+    sed -i "s/0\.0\.0/${tag}/g" zache.gemspec
+    git add zache.gemspec
+    git commit -m "Version set to ${tag}"
+    gem build zache.gemspec
+    chmod 0600 ../rubygems.yml
+    gem push *.gem --config-file ../rubygems.yml
+  commanders:
+  - yegor256
+architect:
+- yegor256
+merge:
+  commanders: []
+deploy: {}
