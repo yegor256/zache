@@ -21,6 +21,14 @@ zache = Zache.new
 # Expires in 5 minutes
 v = zache.get(:count, lifetime: 5 * 60) { expensive() }
 ```
+
+By default `Zache` is thread-safe. You turn that off by using `sync` argument:
+
+```ruby
+zache = Zache.new(sync: false)
+v = zache.get(:count) { expensive() }
+```
+
 That's it.
 
 # How to contribute
