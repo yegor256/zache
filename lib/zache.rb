@@ -57,6 +57,12 @@ class Zache
     end
   end
 
+  def remove_all
+    @hash.keys.each do |el|
+      remove(el)
+    end
+  end
+
   private
 
   def calc(key, lifetime)
