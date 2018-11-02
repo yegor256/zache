@@ -47,6 +47,11 @@ class Zache
     @hash.key?(key)
   end
 
+  def remove(key)
+    @hash.delete(key)
+    @hash
+  end
+
   private
 
   def calc(key, lifetime)
