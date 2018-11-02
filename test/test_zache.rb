@@ -58,7 +58,7 @@ class ZacheTest < Minitest::Test
     cache.get(:hey) { Random.rand }
     exists_result = cache.exists?(:hey)
     not_exists_result = cache.exists?(:bye)
-    assert(exists_result)
-    assert(!not_exists_result)
+    assert(exists_result == true)
+    assert(not_exists_result == false)
   end
 end
