@@ -57,6 +57,13 @@ class Zache
     end
   end
 
+  def clean
+    @hash.keys.each do |key|
+      el = @hash[key]
+      remove(key) if el[:start] + el[:lifetime] < Time.now
+    end
+  end
+
   private
 
   def calc(key, lifetime)
