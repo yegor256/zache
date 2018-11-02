@@ -57,6 +57,16 @@ class Zache
     end
   end
 
+  def remove_all(*keys)
+    new_hash = if keys.empty?
+                 {}
+               else
+                 keys.each { |k| @hash.delete(k) }
+                 @hash
+               end
+    @hash = new_hash
+  end
+
   private
 
   def calc(key, lifetime)
