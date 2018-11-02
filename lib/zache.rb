@@ -48,8 +48,13 @@ class Zache
   end
 
   def remove(key)
-    @hash.delete(key)
-    @hash
+    if @sync
+      @mutex.synchronize do
+        @hash.delete(key) { yield }
+      end
+    else
+      @hash.delete(key) { yield }
+    end
   end
 
   private
