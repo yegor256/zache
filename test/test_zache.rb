@@ -72,4 +72,15 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:hey) == false)
     assert(cache.exists?(:wey) == true)
   end
+
+  def test_remove_key_with_sync_false
+    cache = Zache.new(sync: false)
+    cache.get(:hey) { Random.rand }
+    cache.get(:wey) { Random.rand }
+    assert(cache.exists?(:hey) == true)
+    assert(cache.exists?(:wey) == true)
+    cache.remove(:hey)
+    assert(cache.exists?(:hey) == false)
+    assert(cache.exists?(:wey) == true)
+  end
 end
