@@ -58,13 +58,13 @@ class Zache
   end
 
   def remove_all(*keys)
-    new_hash = if keys.empty?
-                 {}
-               else
-                 keys.each { |k| @hash.delete(k) }
-                 @hash
-               end
-    @hash = new_hash
+    if @sync
+      @mutex.synchronize do
+        remove_keys(*keys) { yield }
+      end
+    else
+      remove_keys(*keys) { yield }
+    end
   end
 
   private
@@ -80,5 +80,15 @@ class Zache
       }
     end
     @hash[key][:value]
+  end
+
+  def remove_keys(*keys)
+    new_hash = if keys.empty?
+                 {}
+               else
+                 keys.each { |k| @hash.delete(k) }
+                 @hash
+               end
+    @hash = new_hash
   end
 end

@@ -95,8 +95,30 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:hey) == false)
   end
 
+  def test_remove_all_with_args_with_sync_false
+    cache = Zache.new(sync: false)
+    cache.get(:hey) { Random.rand }
+    cache.get(:wey) { Random.rand }
+    cache.get(:tey) { Random.rand }
+    cache.remove_all(:hey, :wey)
+    assert(cache.exists?(:tey) == true)
+    assert(cache.exists?(:wey) == false)
+    assert(cache.exists?(:hey) == false)
+  end
+
   def test_temove_all_without_args
     cache = Zache.new
+    cache.get(:hey) { Random.rand }
+    cache.get(:wey) { Random.rand }
+    cache.get(:tey) { Random.rand }
+    cache.remove_all
+    assert(cache.exists?(:tey) == false)
+    assert(cache.exists?(:wey) == false)
+    assert(cache.exists?(:hey) == false)
+  end
+
+  def test_temove_all_without_args_with_sync_false
+    cache = Zache.new(sync: false)
     cache.get(:hey) { Random.rand }
     cache.get(:wey) { Random.rand }
     cache.get(:tey) { Random.rand }
