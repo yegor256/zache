@@ -53,6 +53,28 @@ class ZacheTest < Minitest::Test
     end
   end
 
+  def test_remove_key_without_sync
+    cache = Zache.new(sync: false)
+    cache.get(:hey) { Random.rand }
+    cache.get(:bye) { Random.rand }
+    assert(cache.exists?(:hey) == true)
+    assert(cache.exists?(:bye) == true)
+    cache.remove(:hey)
+    assert(cache.exists?(:hey) == false)
+    assert(cache.exists?(:bye) == true)
+  end
+
+  def test_remove_key_with_sync
+    cache = Zache.new
+    cache.get(:hey) { Random.rand }
+    cache.get(:bye) { Random.rand }
+    assert(cache.exists?(:hey) == true)
+    assert(cache.exists?(:bye) == true)
+    cache.remove(:hey)
+    assert(cache.exists?(:hey) == false)
+    assert(cache.exists?(:bye) == true)
+  end
+
   def test_key_exists
     cache = Zache.new
     cache.get(:hey) { Random.rand }

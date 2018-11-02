@@ -47,6 +47,16 @@ class Zache
     @hash.key?(key)
   end
 
+  def remove(key)
+    if @sync
+      @mutex.synchronize do
+        @hash.delete(key) if exists?(key)
+      end
+    elsif exists?(key)
+      @hash.delete(key)
+    end
+  end
+
   private
 
   def calc(key, lifetime)
