@@ -43,6 +43,10 @@ class Zache
     end
   end
 
+  def exists?(key)
+    @hash.key?(key)
+  end
+
   private
 
   def calc(key, lifetime)
