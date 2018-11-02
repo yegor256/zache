@@ -34,13 +34,15 @@ class Zache
   end
 
   def get(key, lifetime: 60 * 60)
-    if @sync
-      @mutex.synchronize do
-        calc(key, lifetime) { yield }
-      end
-    else
-      calc(key, lifetime) { yield }
-    end
+    calc_lambda = -> { calc(key, lifetime) { yield } }
+
+    return calc_lambda.call unless @sync
+
+    @mutex.synchronize { calc_lambda.call } if @sync
+  end
+
+  def exists?(key)
+    @hash.key?(key)
   end
 
   private

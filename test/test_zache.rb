@@ -52,4 +52,16 @@ class ZacheTest < Minitest::Test
       cache.get(:hey, lifetime: 0.0001) { Random.rand }
     end
   end
+
+  def test_exists_method
+    cache = Zache.new
+
+    cache.get(:key_name) { Random.rand }
+    cache.get(:foo) { Random.rand }
+
+    assert(cache.exists?(:key_name))
+    assert(cache.exists?(:foo))
+
+    assert(cache.exists?(:some_name) == false)
+  end
 end
