@@ -25,10 +25,10 @@
 # It is a very simple thread-safe in-memory cache with an ability to expire
 # keys automatically, when their lifetime is over. Use it like this:
 #
-#   require 'zache'
-#   zache = Zache.new
-#   # Expires in 5 minutes
-#   v = zache.get(:count, lifetime: 5 * 60) { expensive() }
+#  require 'zache'
+#  zache = Zache.new
+#  # Expires in 5 minutes
+#  v = zache.get(:count, lifetime: 5 * 60) { expensive() }
 #
 # For more information read
 # {README}[https://github.com/yegor256/zache/blob/master/README.md] file.
