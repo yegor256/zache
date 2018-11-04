@@ -75,13 +75,11 @@ class Zache
   # Removes the value from the hash, by the provied key. If the key is absent
   # and the block is provide, the block will be called.
   def remove(key)
-    if @sync
-      @mutex.synchronize do
-        @hash.delete(key) { yield if block_given? }
-      end
-    else
-      @hash.delete(key) { yield if block_given? }
-    end
+    block_lambda = -> { @hash.delete(key) { yield if block_given? } }
+
+    return block_lambda.call unless @sync
+
+    @mutex.synchronize { block_lambda.call } if @sync
   end
 
   private
