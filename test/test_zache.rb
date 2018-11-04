@@ -53,6 +53,17 @@ class ZacheTest < Minitest::Test
     end
   end
 
+  def test_get_with_raise_no_block
+    cache = Zache.new
+    error = assert_raises(RuntimeError) { cache.get(:hey, lifetime: 0.01) }
+
+    assert_equal(error.message, 'A block is required')
+
+    cache.get(:hey, lifetime: 0.01) { Random.rand }
+
+    assert(true)
+  end
+
   def test_key_exists
     cache = Zache.new
     cache.get(:hey) { Random.rand }

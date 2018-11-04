@@ -52,13 +52,12 @@ class Zache
   # the block is not given, an exception will be raised.
   def get(key, lifetime: 60 * 60)
     raise 'A block is required' unless block_given?
-    if @sync
-      @mutex.synchronize do
-        calc(key, lifetime) { yield }
-      end
-    else
-      calc(key, lifetime) { yield }
-    end
+
+    calc_lambda = -> { calc(key, lifetime) { yield } }
+
+    return calc_lambda.call unless @sync
+
+    @mutex.synchronize { calc_lambda.call } if @sync
   end
 
   # Checks whether the value exists in the cache by the provided key. Returns
