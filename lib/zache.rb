@@ -86,8 +86,12 @@ class Zache
   end
 
   def remove_all
-    @hash.keys.each do |el|
-      remove(el)
+    if @sync
+      @mutex.synchronize do
+        @hash = {}
+      end
+    else
+      @hash = {}
     end
   end
 
