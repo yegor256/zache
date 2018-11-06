@@ -66,7 +66,7 @@ class Zache
   # it will be removed by this method and the result will be FALSE.
   def exists?(key)
     rec = @hash[key]
-    if !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+    if key_expired?(key)
       @hash.delete(key)
       rec = nil
     end
@@ -89,7 +89,7 @@ class Zache
 
   def calc(key, lifetime)
     rec = @hash[key]
-    rec = nil if !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+    rec = nil if key_expired?(key)
     if rec.nil?
       @hash[key] = {
         value: yield,
@@ -98,5 +98,10 @@ class Zache
       }
     end
     @hash[key][:value]
+  end
+
+  def key_expired?(key)
+    rec = @hash[key]
+    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
   end
 end
