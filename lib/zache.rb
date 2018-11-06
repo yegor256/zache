@@ -86,8 +86,16 @@ class Zache
   end
 
   def clean
-    @hash.delete_if do |_key, value|
-      value[:start] < Time.now - value[:lifetime]
+    if @sync
+      @mutex.synchronize do
+        @hash.delete_if do |_key, value|
+          value[:start] < Time.now - value[:lifetime]
+        end
+      end
+    else
+      @hash.delete_if do |_key, value|
+        value[:start] < Time.now - value[:lifetime]
+      end
     end
   end
 

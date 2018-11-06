@@ -86,7 +86,7 @@ class ZacheTest < Minitest::Test
 
   def test_clean_with_threads
     cache = Zache.new
-    Threads.new(3000).assert(3000) do
+    Threads.new(300).assert(3000) do
       cache.get(:hey) { Random.rand }
       cache.get(:bye, lifetime: 0.01) { Random.rand }
       sleep 0.1
