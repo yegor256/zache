@@ -97,12 +97,10 @@ class ZacheTest < Minitest::Test
 
   def test_remove_all_with_threads
     cache = Zache.new
-    10.times do |i|
-      Thread.new do
-        cache.get("hey#{i}".to_sym) { Random.rand }
-        assert(cache.exists?("hey#{i}".to_sym) == true)
-        cache.remove_all
-      end
+    Threads.new(10).assert(100) do |i|
+      cache.get("hey#{i}".to_sym) { Random.rand }
+      assert(cache.exists?("hey#{i}".to_sym) == true)
+      cache.remove_all
     end
     10.times do |i|
       assert(cache.exists?("hey#{i}".to_sym) == false)
