@@ -22,18 +22,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Cache.
+# It is a very simple thread-safe in-memory cache with an ability to expire
+# keys automatically, when their lifetime is over. Use it like this:
+#
+#  require 'zache'
+#  zache = Zache.new
+#  # Expires in 5 minutes
+#  v = zache.get(:count, lifetime: 5 * 60) { expensive() }
+#
+# For more information read
+# {README}[https://github.com/yegor256/zache/blob/master/README.md] file.
+#
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2018 Yegor Bugayenko
 # License:: MIT
 class Zache
+  # Makes a new object of the cache.
+  # "sync" is whether the hash is thread-safe (`true`)
+  # or not (`false`); it is recommended to leave this parameter untouched,
+  # unless you really know what you are doing.
   def initialize(sync: true)
     @hash = {}
     @sync = sync
     @mutex = Mutex.new
   end
 
+  # Gets the value from the cache by the provided key. If the value is not
+  # found in the cache, it will be calculated via the provided block. If
+  # the block is not given, an exception will be raised.
   def get(key, lifetime: 60 * 60)
+    raise 'A block is required' unless block_given?
     if @sync
       @mutex.synchronize do
         calc(key, lifetime) { yield }
@@ -43,17 +61,27 @@ class Zache
     end
   end
 
+  # Checks whether the value exists in the cache by the provided key. Returns
+  # TRUE if the value is here. If the key is already expired in the hash,
+  # it will be removed by this method and the result will be FALSE.
   def exists?(key)
-    @hash.key?(key)
+    rec = @hash[key]
+    if !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+      @hash.delete(key)
+      rec = nil
+    end
+    !rec.nil?
   end
 
+  # Removes the value from the hash, by the provied key. If the key is absent
+  # and the block is provide, the block will be called.
   def remove(key)
     if @sync
       @mutex.synchronize do
-        @hash.delete(key) { yield }
+        @hash.delete(key) { yield if block_given? }
       end
     else
-      @hash.delete(key) { yield }
+      @hash.delete(key) { yield if block_given? }
     end
   end
 

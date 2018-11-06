@@ -84,6 +84,31 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:wey) == true)
   end
 
+  def test_remove_absent_key
+    cache = Zache.new
+    cache.remove(:hey)
+  end
+
+  def test_check_and_remove
+    cache = Zache.new
+    cache.get(:hey, lifetime: 0) { Random.rand }
+    assert(!cache.exists?(:hey))
+  end
+
+  def test_remove_all_with_threads
+    cache = Zache.new
+    10.times do |i|
+      Thread.new do
+        cache.get("hey#{i}".to_sym) { Random.rand }
+        assert(cache.exists?("hey#{i}".to_sym) == true)
+        cache.remove_all
+      end
+    end
+    10.times do |i|
+      assert(cache.exists?("hey#{i}".to_sym) == false)
+    end
+  end
+
   def test_remove_all_with_sync
     cache = Zache.new
     cache.get(:hey) { Random.rand }
