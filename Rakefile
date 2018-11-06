@@ -44,6 +44,13 @@ Rake::TestTask.new(:test) do |test|
   test.verbose = false
 end
 
+require 'rdoc/task'
+RDoc::Task.new do |rdoc|
+  rdoc.main = 'README.md'
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.rdoc_files.include('README.md', 'lib/**/*.rb')
+end
+
 require 'rubocop/rake_task'
 desc 'Run RuboCop on all directories'
 RuboCop::RakeTask.new(:rubocop) do |task|

@@ -115,4 +115,15 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:hey) == true)
     assert(cache.exists?(:bye) == false)
   end
+  
+  def test_remove_absent_key
+    cache = Zache.new
+    cache.remove(:hey)
+  end
+
+  def test_check_and_remove
+    cache = Zache.new
+    cache.get(:hey, lifetime: 0) { Random.rand }
+    assert(!cache.exists?(:hey))
+  end
 end
