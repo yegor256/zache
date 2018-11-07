@@ -52,11 +52,8 @@ class Zache
   # the block is not given, an exception will be raised.
   def get(key, lifetime: 60 * 60)
     raise 'A block is required' unless block_given?
-
     calc_lambda = -> { calc(key, lifetime) { yield } }
-
     return calc_lambda.call unless @sync
-
     @mutex.synchronize { calc_lambda.call } if @sync
   end
 
@@ -76,9 +73,7 @@ class Zache
   # and the block is provide, the block will be called.
   def remove(key)
     block_lambda = -> { @hash.delete(key) { yield if block_given? } }
-
     return block_lambda.call unless @sync
-
     @mutex.synchronize { block_lambda.call } if @sync
   end
 
