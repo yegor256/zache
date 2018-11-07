@@ -2,6 +2,9 @@ AllCops:
   DisplayCopNames: true
   TargetRubyVersion: 2.3.3
 
+Metrics/ClassLength:
+  Exclude:
+    - 'test/*.rb'
 Layout/MultilineMethodCallIndentation:
   Enabled: false
 Metrics/AbcSize:
