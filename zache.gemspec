@@ -31,7 +31,7 @@ Gem::Specification.new do |s|
   s.rubygems_version = '2.3.3'
   s.required_ruby_version = '>=2.3'
   s.name = 'zache'
-  s.version = '0.0.0'
+  s.version = '0.3.0'
   s.license = 'MIT'
   s.summary = 'In-memory Cache'
   s.description = 'Zero-footprint in-memory thread-safe cache'
