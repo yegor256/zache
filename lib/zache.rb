@@ -99,12 +99,12 @@ class Zache
     if @sync
       @mutex.synchronize do
         @hash.delete_if do |_key, value|
-          value[:start] < Time.now - value[:lifetime]
+          key_expired?(value)
         end
       end
     else
       @hash.delete_if do |_key, value|
-        value[:start] < Time.now - value[:lifetime]
+        key_expired?(value)
       end
     end
   end
