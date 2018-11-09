@@ -85,6 +85,16 @@ class Zache
     end
   end
 
+  def remove_all
+    if @sync
+      @mutex.synchronize do
+        @hash = {}
+      end
+    else
+      @hash = {}
+    end
+  end
+
   def clean
     if @sync
       @mutex.synchronize do

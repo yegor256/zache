@@ -126,4 +126,34 @@ class ZacheTest < Minitest::Test
     cache.get(:hey, lifetime: 0) { Random.rand }
     assert(!cache.exists?(:hey))
   end
+
+  def test_remove_all_with_threads
+    cache = Zache.new
+    Threads.new(10).assert(100) do |i|
+      cache.get("hey#{i}".to_sym) { Random.rand }
+      assert(cache.exists?("hey#{i}".to_sym) == true)
+      cache.remove_all
+    end
+    10.times do |i|
+      assert(cache.exists?("hey#{i}".to_sym) == false)
+    end
+  end
+
+  def test_remove_all_with_sync
+    cache = Zache.new
+    cache.get(:hey) { Random.rand }
+    cache.get(:bye) { Random.rand }
+    cache.remove_all
+    assert(cache.exists?(:hey) == false)
+    assert(cache.exists?(:bye) == false)
+  end
+
+  def test_remove_all_without_sync
+    cache = Zache.new(sync: false)
+    cache.get(:hey) { Random.rand }
+    cache.get(:bye) { Random.rand }
+    cache.remove_all
+    assert(cache.exists?(:hey) == false)
+    assert(cache.exists?(:bye) == false)
+  end
 end
