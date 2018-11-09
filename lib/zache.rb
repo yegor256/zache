@@ -52,13 +52,7 @@ class Zache
   # the block is not given, an exception will be raised.
   def get(key, lifetime: 60 * 60)
     raise 'A block is required' unless block_given?
-    if @sync
-      @mutex.synchronize do
-        calc(key, lifetime) { yield }
-      end
-    else
-      calc(key, lifetime) { yield }
-    end
+    synchronized { calc(key, lifetime) { yield } }
   end
 
   # Checks whether the value exists in the cache by the provided key. Returns
@@ -76,37 +70,15 @@ class Zache
   # Removes the value from the hash, by the provied key. If the key is absent
   # and the block is provide, the block will be called.
   def remove(key)
-    if @sync
-      @mutex.synchronize do
-        @hash.delete(key) { yield if block_given? }
-      end
-    else
-      @hash.delete(key) { yield if block_given? }
-    end
+    synchronized { @hash.delete(key) { yield if block_given? } }
   end
 
   def remove_all
-    if @sync
-      @mutex.synchronize do
-        @hash = {}
-      end
-    else
-      @hash = {}
-    end
+    synchronized { @hash = {} }
   end
 
   def clean
-    if @sync
-      @mutex.synchronize do
-        @hash.delete_if do |_key, value|
-          key_expired?(value)
-        end
-      end
-    else
-      @hash.delete_if do |_key, value|
-        key_expired?(value)
-      end
-    end
+    synchronized { @hash.delete_if { |_key, value| key_expired?(value) } }
   end
 
   private
@@ -122,6 +94,14 @@ class Zache
       }
     end
     @hash[key][:value]
+  end
+
+  def synchronized
+    if @sync
+      @mutex.synchronize { yield }
+    else
+      yield
+    end
   end
 
   def key_expired?(key)
