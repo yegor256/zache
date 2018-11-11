@@ -22,6 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'monitor'
+
 # It is a very simple thread-safe in-memory cache with an ability to expire
 # keys automatically, when their lifetime is over. Use it like this:
 #
@@ -44,7 +46,7 @@ class Zache
   def initialize(sync: true)
     @hash = {}
     @sync = sync
-    @mutex = Mutex.new
+    @monitor = Monitor.new
   end
 
   # Gets the value from the cache by the provided key. If the value is not
@@ -98,7 +100,7 @@ class Zache
 
   def synchronized
     if @sync
-      @mutex.synchronize { yield }
+      @monitor.synchronize { yield }
     else
       yield
     end

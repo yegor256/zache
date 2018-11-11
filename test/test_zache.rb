@@ -156,4 +156,9 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:hey) == false)
     assert(cache.exists?(:bye) == false)
   end
+
+  def test_sync_zache_is_reentrant
+    cache = Zache.new
+    cache.get(:first) { cache.get(:second) { 1 } }
+  end
 end
