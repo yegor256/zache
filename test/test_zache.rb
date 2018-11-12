@@ -159,6 +159,6 @@ class ZacheTest < Minitest::Test
 
   def test_sync_zache_is_reentrant
     cache = Zache.new
-    cache.get(:first) { cache.get(:second) { 1 } }
+    cache.get(:first) { cache.get(:second) { cache.get(:third) { 1 } } }
   end
 end
