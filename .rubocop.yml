@@ -5,6 +5,8 @@ AllCops:
 Metrics/ClassLength:
   Exclude:
     - 'test/*.rb'
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
 Layout/MultilineMethodCallIndentation:
   Enabled: false
 Metrics/AbcSize:
