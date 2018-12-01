@@ -51,10 +51,21 @@ class Zache
 
   # Gets the value from the cache by the provided key. If the value is not
   # found in the cache, it will be calculated via the provided block. If
-  # the block is not given, an exception will be raised.
-  def get(key, lifetime: 60 * 60)
-    raise 'A block is required' unless block_given?
-    synchronized { calc(key, lifetime) { yield } }
+  # the block is not given, an exception will be raised. The lifetime
+  # must be in seconds. The default lifetime is huge, which means that the
+  # key will never be expired.
+  def get(key, lifetime: 2**32)
+    if block_given?
+      synchronized { calc(key, lifetime) { yield } }
+    else
+      rec = @hash[key]
+      if key_expired?(key)
+        @hash.delete(key)
+        rec = nil
+      end
+      raise 'The key is absent in the cache' if rec.nil?
+      rec[:value]
+    end
   end
 
   # Checks whether the value exists in the cache by the provided key. Returns
@@ -69,16 +80,29 @@ class Zache
     !rec.nil?
   end
 
+  # Put a value into the cache.
+  def put(key, value, lifetime: 2**32)
+    synchronized do
+      @hash[key] = {
+        value: value,
+        start: Time.now,
+        lifetime: lifetime
+      }
+    end
+  end
+
   # Removes the value from the hash, by the provied key. If the key is absent
   # and the block is provide, the block will be called.
   def remove(key)
     synchronized { @hash.delete(key) { yield if block_given? } }
   end
 
+  # Remove all keys from the cache.
   def remove_all
     synchronized { @hash = {} }
   end
 
+  # Remove keys that are expired.
   def clean
     synchronized { @hash.delete_if { |_key, value| key_expired?(value) } }
   end
