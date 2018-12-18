@@ -43,9 +43,13 @@ class Zache
   # "sync" is whether the hash is thread-safe (`true`)
   # or not (`false`); it is recommended to leave this parameter untouched,
   # unless you really know what you are doing.
-  def initialize(sync: true)
+  #
+  # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
+  # calculated result will be returned if it exists.
+  def initialize(sync: true, dirty: false)
     @hash = {}
     @sync = sync
+    @dirty = dirty
     @monitor = Monitor.new
   end
 
@@ -59,7 +63,7 @@ class Zache
   # calculated result will be returned if it exists.
   def get(key, lifetime: 2**32, dirty: false)
     if block_given?
-      if dirty && locked? && !key_expired?(key) && @hash.key?(key)
+      if (dirty || @dirty) && locked? && !key_expired?(key) && @hash.key?(key)
         return @hash[key]
       end
       synchronized { calc(key, lifetime) { yield } }
