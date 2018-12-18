@@ -24,6 +24,7 @@
 
 require 'minitest/autorun'
 require 'threads'
+require 'timeout'
 require_relative '../lib/zache'
 
 # Cache test.
@@ -167,5 +168,33 @@ class ZacheTest < Minitest::Test
   def test_sync_zache_is_reentrant
     cache = Zache.new
     cache.get(:first) { cache.get(:second) { cache.get(:third) { 1 } } }
+  end
+
+  def test_calculates_only_once
+    cache = Zache.new
+    long = Thread.start do
+      cache.get(:x) do
+        sleep 0.5
+        'first'
+      end
+    end
+    sleep 0.1
+    assert(cache.locked?)
+    cache.get(:x) { 'second' }
+    assert(!cache.locked?)
+    long.kill
+  end
+
+  def test_returns_dirty_result
+    cache = Zache.new
+    cache.get(:first, lifetime: 10) { 1 }
+    long = Thread.start do
+      cache.get(:first) { sleep 1000 }
+    end
+    sleep 0.1
+    Timeout.timeout(1) do
+      assert_equal(1, cache.get(:first, dirty: true) { 2 })
+    end
+    long.kill
   end
 end

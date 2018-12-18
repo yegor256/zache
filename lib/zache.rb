@@ -54,8 +54,14 @@ class Zache
   # the block is not given, an exception will be raised. The lifetime
   # must be in seconds. The default lifetime is huge, which means that the
   # key will never be expired.
-  def get(key, lifetime: 2**32)
+  #
+  # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
+  # calculated result will be returned if it exists.
+  def get(key, lifetime: 2**32, dirty: false)
     if block_given?
+      if dirty && locked? && !key_expired?(key) && @hash.key?(key)
+        return @hash[key]
+      end
       synchronized { calc(key, lifetime) { yield } }
     else
       rec = @hash[key]
@@ -78,6 +84,11 @@ class Zache
       rec = nil
     end
     !rec.nil?
+  end
+
+  # Is cache currently locked doing something?
+  def locked?
+    !@monitor.mon_try_enter { true }
   end
 
   # Put a value into the cache.
@@ -124,7 +135,7 @@ class Zache
 
   def synchronized
     if @sync
-      @monitor.synchronize { yield }
+      @monitor.mon_synchronize { yield }
     else
       yield
     end
