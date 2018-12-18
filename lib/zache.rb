@@ -63,8 +63,8 @@ class Zache
   # calculated result will be returned if it exists.
   def get(key, lifetime: 2**32, dirty: false)
     if block_given?
-      if (dirty || @dirty) && locked? && !key_expired?(key) && @hash.key?(key)
-        return @hash[key]
+      if (dirty || @dirty) && locked? && key_expired?(key) && @hash.key?(key)
+        return @hash[key][:value]
       end
       synchronized { calc(key, lifetime) { yield } }
     else

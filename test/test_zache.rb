@@ -190,13 +190,16 @@ class ZacheTest < Minitest::Test
 
   def test_returns_dirty_result
     cache = Zache.new
-    cache.get(:first, lifetime: 10) { 1 }
+    cache.get(:x, lifetime: 0) { 1 }
     long = Thread.start do
-      cache.get(:first) { sleep 1000 }
+      cache.get(:x) do
+        sleep 1000
+        2
+      end
     end
     sleep 0.1
     Timeout.timeout(1) do
-      assert_equal(1, cache.get(:first, dirty: true) { 2 })
+      assert_equal(1, cache.get(:x, dirty: true) { 2 })
     end
     long.kill
   end
