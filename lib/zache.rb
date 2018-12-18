@@ -45,7 +45,7 @@ class Zache
   # unless you really know what you are doing.
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
-  # calculated result will be returned if it exists.
+  # calculated result will be returned if it exists and is already expired.
   def initialize(sync: true, dirty: false)
     @hash = {}
     @sync = sync
@@ -60,7 +60,7 @@ class Zache
   # key will never be expired.
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
-  # calculated result will be returned if it exists.
+  # calculated result will be returned if it exists and is already expired.
   def get(key, lifetime: 2**32, dirty: false)
     if block_given?
       if (dirty || @dirty) && locked? && key_expired?(key) && @hash.key?(key)
