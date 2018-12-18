@@ -25,7 +25,10 @@
 require 'minitest/autorun'
 require 'threads'
 require 'timeout'
+require 'concurrent'
 require_relative '../lib/zache'
+
+Thread.report_on_exception = true
 
 # Cache test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
@@ -196,5 +199,15 @@ class ZacheTest < Minitest::Test
       assert_equal(1, cache.get(:first, dirty: true) { 2 })
     end
     long.kill
+  end
+
+  def test_fetches_multiple_keys_in_many_threads
+    cache = Zache.new(dirty: true)
+    set = Concurrent::Set.new
+    threads = 50
+    Threads.new(threads).assert(threads * 2) do |i|
+      set << cache.get(i) { i }
+    end
+    assert_equal(threads, set.size)
   end
 end

@@ -139,7 +139,13 @@ class Zache
 
   def synchronized
     if @sync
-      @monitor.mon_synchronize { yield }
+      @monitor.synchronize do
+        # I don't know why, but if you remove this line, the tests will
+        # break. It seems to me that there is a bug in Ruby. Let's try to
+        # fix it or find a workaround and remove this line.
+        sleep 0.00001
+        yield
+      end
     else
       yield
     end

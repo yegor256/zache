@@ -28,8 +28,8 @@ Gem::Specification.new do |s|
   if s.respond_to? :required_rubygems_version=
     s.required_rubygems_version = Gem::Requirement.new('>= 0')
   end
-  s.rubygems_version = '2.3.3'
-  s.required_ruby_version = '>=2.3'
+  s.rubygems_version = '2.5'
+  s.required_ruby_version = '>=2.5'
   s.name = 'zache'
   s.version = '0.0.0'
   s.license = 'MIT'
@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
   s.test_files = s.files.grep(%r{^(test)/})
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md']
+  s.add_development_dependency 'concurrent-ruby', '1.1.3'
   s.add_development_dependency 'minitest', '5.11.3'
   s.add_development_dependency 'rake', '12.3.1'
   s.add_development_dependency 'rdoc', '4.3.0'
