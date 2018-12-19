@@ -25,12 +25,20 @@ zache = Zache.new
 v = zache.get(:count, lifetime: 5 * 60) { expensive() }
 ```
 
-By default `Zache` is thread-safe. You turn that off by using `sync` argument:
+By default `Zache` is thread-safe. It locks the entire cache on each
+`get` call. You turn that off by using `sync` argument:
 
 ```ruby
 zache = Zache.new(sync: false)
 v = zache.get(:count) { expensive() }
 ```
+
+You may use "dirty" mode, which will return you an expired value, while
+calculation is waiting. Say, you have something in the cache, but it's
+expired. Then, you call `get` with a long running block. The thread waits,
+while another one calls `get` again. That second thread won't wait, but will
+receive what's left in the cache. This is a very convenient mode for situations
+when you don't really care about data accuracy, but performance is an issue.
 
 That's it.
 

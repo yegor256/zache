@@ -168,9 +168,11 @@ class ZacheTest < Minitest::Test
     assert_equal(123, cache.get(:hey))
   end
 
-  def test_sync_zache_is_reentrant
+  def test_sync_zache_is_not_reentrant
     cache = Zache.new
-    cache.get(:first) { cache.get(:second) { cache.get(:third) { 1 } } }
+    assert_raises ThreadError do
+      cache.get(:first) { cache.get(:second) { 1 } }
+    end
   end
 
   def test_calculates_only_once
@@ -186,6 +188,15 @@ class ZacheTest < Minitest::Test
     cache.get(:x) { 'second' }
     assert(!cache.locked?)
     long.kill
+  end
+
+  def test_checks_locked_status_from_inside
+    cache = Zache.new
+    cache.get(:x) do
+      assert(cache.locked?)
+      'done'
+    end
+    assert(!cache.locked?)
   end
 
   def test_returns_dirty_result
@@ -204,8 +215,18 @@ class ZacheTest < Minitest::Test
     long.kill
   end
 
-  def test_fetches_multiple_keys_in_many_threads
+  def test_fetches_multiple_keys_in_many_threads_in_dirty_mode
     cache = Zache.new(dirty: true)
+    set = Concurrent::Set.new
+    threads = 50
+    Threads.new(threads).assert(threads * 2) do |i|
+      set << cache.get(i, lifetime: 0.001) { i }
+    end
+    assert_equal(threads, set.size)
+  end
+
+  def test_fetches_multiple_keys_in_many_threads
+    cache = Zache.new
     set = Concurrent::Set.new
     threads = 50
     Threads.new(threads).assert(threads * 2) do |i|

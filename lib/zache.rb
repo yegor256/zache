@@ -22,8 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'monitor'
-
 # It is a very simple thread-safe in-memory cache with an ability to expire
 # keys automatically, when their lifetime is over. Use it like this:
 #
@@ -50,7 +48,7 @@ class Zache
     @hash = {}
     @sync = sync
     @dirty = dirty
-    @monitor = Monitor.new
+    @mutex = Mutex.new
   end
 
   # Gets the value from the cache by the provided key. If the value is not
@@ -92,7 +90,7 @@ class Zache
 
   # Is cache currently locked doing something?
   def locked?
-    !@monitor.mon_try_enter { true }
+    @mutex.locked?
   end
 
   # Put a value into the cache.
@@ -139,7 +137,7 @@ class Zache
 
   def synchronized
     if @sync
-      @monitor.synchronize do
+      @mutex.synchronize do
         # I don't know why, but if you remove this line, the tests will
         # break. It seems to me that there is a bug in Ruby. Let's try to
         # fix it or find a workaround and remove this line.
