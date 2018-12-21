@@ -37,6 +37,31 @@
 # Copyright:: Copyright (c) 2018 Yegor Bugayenko
 # License:: MIT
 class Zache
+  # Fake implementation that doesn't cache anything, but behaves like it
+  # does. It implements all methods of the original class, but doesn't do
+  # any caching. This is very useful for testing.
+  class Fake
+    def get(*)
+      yield
+    end
+
+    def exists?(*)
+      true
+    end
+
+    def locked?
+      false
+    end
+
+    def put(*); end
+
+    def remove(_key); end
+
+    def remove_all; end
+
+    def clean; end
+  end
+
   # Makes a new object of the cache.
   # "sync" is whether the hash is thread-safe (`true`)
   # or not (`false`); it is recommended to leave this parameter untouched,

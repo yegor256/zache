@@ -234,4 +234,9 @@ class ZacheTest < Minitest::Test
     end
     assert_equal(threads, set.size)
   end
+
+  def test_fake_class_works
+    cache = Zache::Fake.new
+    assert_equal(1, cache.get(:x) { 1 })
+  end
 end
