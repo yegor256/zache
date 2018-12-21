@@ -40,6 +40,7 @@ class ZacheTest < Minitest::Test
     first = cache.get(:hey, lifetime: 5) { Random.rand }
     second = cache.get(:hey) { Random.rand }
     assert(first == second)
+    assert_equal(1, cache.size)
   end
 
   def test_caches_and_expires

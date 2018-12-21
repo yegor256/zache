@@ -41,6 +41,10 @@ class Zache
   # does. It implements all methods of the original class, but doesn't do
   # any caching. This is very useful for testing.
   class Fake
+    def size
+      1
+    end
+
     def get(*)
       yield
     end
@@ -74,6 +78,11 @@ class Zache
     @sync = sync
     @dirty = dirty
     @mutex = Mutex.new
+  end
+
+  # Total number of keys currently in cache.
+  def size
+    @hash.size
   end
 
   # Gets the value from the cache by the provided key. If the value is not
