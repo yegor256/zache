@@ -208,7 +208,7 @@ class ZacheTest < Minitest::Test
   end
 
   def test_returns_dirty_result
-    cache = Zache.new
+    cache = Zache.new(dirty: true)
     cache.get(:x, lifetime: 0) { 1 }
     long = Thread.start do
       cache.get(:x) do
@@ -218,11 +218,19 @@ class ZacheTest < Minitest::Test
     end
     sleep 0.1
     Timeout.timeout(1) do
-      assert(cache.exists?(:x, dirty: true))
-      assert_equal(1, cache.get(:x, dirty: true))
-      assert_equal(1, cache.get(:x, dirty: true) { 2 })
+      assert(cache.exists?(:x))
+      assert_equal(1, cache.get(:x))
+      assert_equal(1, cache.get(:x) { 2 })
     end
     long.kill
+  end
+
+  def test_returns_dirty_result_when_not_locked
+    cache = Zache.new(dirty: true)
+    cache.get(:x, lifetime: 0) { 1 }
+    assert(cache.exists?(:x))
+    assert_equal(1, cache.get(:x))
+    assert_equal(2, cache.get(:x) { 2 })
   end
 
   def test_fetches_multiple_keys_in_many_threads_in_dirty_mode
