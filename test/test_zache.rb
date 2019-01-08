@@ -51,6 +51,13 @@ class ZacheTest < Minitest::Test
     assert(first != second)
   end
 
+  def test_calculates_age
+    cache = Zache.new
+    cache.get(:hey) { Random.rand }
+    sleep 0.1
+    assert(cache.mtime(:hey) < Time.now - 0.05)
+  end
+
   def test_caches_in_threads
     cache = Zache.new
     Threads.new(10).assert(100) do

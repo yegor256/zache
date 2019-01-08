@@ -123,6 +123,13 @@ class Zache
     !rec.nil?
   end
 
+  # Returns the modification time of the key, if it exists.
+  # If not, current time is returned.
+  def mtime(key)
+    rec = @hash[key]
+    rec.nil? ? Time.now : rec[:start]
+  end
+
   # Is cache currently locked doing something?
   def locked?
     @mutex.locked?
