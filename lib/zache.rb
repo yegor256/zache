@@ -114,9 +114,9 @@ class Zache
   # Checks whether the value exists in the cache by the provided key. Returns
   # TRUE if the value is here. If the key is already expired in the hash,
   # it will be removed by this method and the result will be FALSE.
-  def exists?(key)
+  def exists?(key, dirty: false)
     rec = @hash[key]
-    if key_expired?(key)
+    if key_expired?(key) && !dirty && !@dirty
       @hash.delete(key)
       rec = nil
     end

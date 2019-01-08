@@ -218,6 +218,7 @@ class ZacheTest < Minitest::Test
     end
     sleep 0.1
     Timeout.timeout(1) do
+      assert(cache.exists?(:x, dirty: true))
       assert_equal(1, cache.get(:x, dirty: true))
       assert_equal(1, cache.get(:x, dirty: true) { 2 })
     end
