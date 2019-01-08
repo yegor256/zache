@@ -87,17 +87,18 @@ class Zache
 
   # Gets the value from the cache by the provided key. If the value is not
   # found in the cache, it will be calculated via the provided block. If
-  # the block is not given, an exception will be raised. The lifetime
+  # the block is not given, an exception will be raised (unless <tt>dirty</tt>
+  # is set to <tt>true</tt>). The lifetime
   # must be in seconds. The default lifetime is huge, which means that the
   # key will never be expired.
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
   # calculated result will be returned if it exists and is already expired.
   def get(key, lifetime: 2**32, dirty: false)
+    if (dirty || @dirty) && locked? && key_expired?(key) && @hash.key?(key)
+      return @hash[key][:value]
+    end
     if block_given?
-      if (dirty || @dirty) && locked? && key_expired?(key) && @hash.key?(key)
-        return @hash[key][:value]
-      end
       synchronized { calc(key, lifetime) { yield } }
     else
       rec = @hash[key]
