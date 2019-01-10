@@ -96,13 +96,13 @@ class Zache
   # calculated result will be returned if it exists and is already expired.
   def get(key, lifetime: 2**32, dirty: false)
     if block_given?
-      if (dirty || @dirty) && locked? && key_expired?(key) && @hash.key?(key)
+      if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
         return @hash[key][:value]
       end
       synchronized { calc(key, lifetime) { yield } }
     else
       rec = @hash[key]
-      if key_expired?(key)
+      if expired?(key)
         return rec[:value] if dirty || @dirty
         @hash.delete(key)
         rec = nil
@@ -117,11 +117,18 @@ class Zache
   # it will be removed by this method and the result will be FALSE.
   def exists?(key, dirty: false)
     rec = @hash[key]
-    if key_expired?(key) && !dirty && !@dirty
+    if expired?(key) && !dirty && !@dirty
       @hash.delete(key)
       rec = nil
     end
     !rec.nil?
+  end
+
+  # Checks whether the key exists in the cache and is expired. If the
+  # key is absent FALSE is returned.
+  def expired?(key)
+    rec = @hash[key]
+    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
   end
 
   # Returns the modification time of the key, if it exists.
@@ -160,14 +167,14 @@ class Zache
 
   # Remove keys that are expired.
   def clean
-    synchronized { @hash.delete_if { |_key, value| key_expired?(value) } }
+    synchronized { @hash.delete_if { |_key, value| expired?(value) } }
   end
 
   private
 
   def calc(key, lifetime)
     rec = @hash[key]
-    rec = nil if key_expired?(key)
+    rec = nil if expired?(key)
     if rec.nil?
       @hash[key] = {
         value: yield,
@@ -190,10 +197,5 @@ class Zache
     else
       yield
     end
-  end
-
-  def key_expired?(key)
-    rec = @hash[key]
-    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
   end
 end
