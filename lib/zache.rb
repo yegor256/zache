@@ -165,6 +165,15 @@ class Zache
     synchronized { @hash = {} }
   end
 
+  # Remove all keys that match the block.
+  def remove_by
+    synchronized do
+      @hash.keys.each do |k|
+        @hash.delete(k) if yield(k)
+      end
+    end
+  end
+
   # Remove keys that are expired.
   def clean
     synchronized { @hash.delete_if { |_key, value| expired?(value) } }

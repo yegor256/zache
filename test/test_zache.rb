@@ -85,6 +85,15 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:wey) == true)
   end
 
+  def test_remove_by_block
+    cache = Zache.new
+    cache.get('first') { Random.rand }
+    cache.get('second') { Random.rand }
+    cache.remove_by { |k| k == 'first' }
+    assert(cache.exists?('first') == false)
+    assert(cache.exists?('second') == true)
+  end
+
   def test_remove_key_with_sync_false
     cache = Zache.new(sync: false)
     cache.get(:hey) { Random.rand }
