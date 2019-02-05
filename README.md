@@ -9,6 +9,8 @@
 [![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/yegor256/zache/master/frames)
 
 It's a simple Ruby gem for in-memory cache.
+Read [this blog post](https://www.yegor256.com/2019/02/05/zache.html)
+to understand what Zache is for.
 
 First, install it:
 
