@@ -42,6 +42,9 @@ while another one calls `get` again. That second thread won't wait, but will
 receive what's left in the cache. This is a very convenient mode for situations
 when you don't really care about data accuracy, but performance is an issue.
 
+The entire API is documented [here](http://rubydoc.info/github/yegor256/zache/master/frames)
+(there are many other convenient methods).
+
 That's it.
 
 # How to contribute
