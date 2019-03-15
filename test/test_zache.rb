@@ -74,6 +74,12 @@ class ZacheTest < Minitest::Test
     assert(not_exists_result == false)
   end
 
+  def test_put_and_exists
+    cache = Zache.new
+    cache.put(:hey, 'hello', lifetime: 0)
+    assert(!cache.exists?(:hey))
+  end
+
   def test_remove_key
     cache = Zache.new
     cache.get(:hey) { Random.rand }
