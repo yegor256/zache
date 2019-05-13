@@ -76,7 +76,8 @@ class ZacheTest < Minitest::Test
 
   def test_put_and_exists
     cache = Zache.new
-    cache.put(:hey, 'hello', lifetime: 0)
+    cache.put(:hey, 'hello', lifetime: 0.1)
+    sleep 0.2
     assert(!cache.exists?(:hey))
   end
 

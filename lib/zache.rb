@@ -67,6 +67,7 @@ class Zache
   end
 
   # Makes a new object of the cache.
+  #
   # "sync" is whether the hash is thread-safe (`true`)
   # or not (`false`); it is recommended to leave this parameter untouched,
   # unless you really know what you are doing.
@@ -85,7 +86,9 @@ class Zache
     @hash.size
   end
 
-  # Gets the value from the cache by the provided key. If the value is not
+  # Gets the value from the cache by the provided key.
+  #
+  # If the value is not
   # found in the cache, it will be calculated via the provided block. If
   # the block is not given, an exception will be raised (unless <tt>dirty</tt>
   # is set to <tt>true</tt>). The lifetime
@@ -155,7 +158,7 @@ class Zache
   end
 
   # Removes the value from the hash, by the provied key. If the key is absent
-  # and the block is provide, the block will be called.
+  # and the block is provided, the block will be called.
   def remove(key)
     synchronized { @hash.delete(key) { yield if block_given? } }
   end
