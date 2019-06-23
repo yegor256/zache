@@ -3,10 +3,12 @@ assets:
 install: |-
   export GEM_HOME=~/.ruby
   export GEM_PATH=$GEM_HOME:$GEM_PATH
+  sudo gem install pdd -v 0.20.5
+  bundle install
 release:
   script: |-
-    bundle install
-    rake
+    bundle exec rake
+    pdd -f /dev/null
     rm -rf *.gem
     sed -i "s/0\.0\.0/${tag}/g" zache.gemspec
     git add zache.gemspec
@@ -14,13 +16,11 @@ release:
     gem build zache.gemspec
     chmod 0600 ../rubygems.yml
     gem push *.gem --config-file ../rubygems.yml
-  commanders:
-  - yegor256
-architect:
-- yegor256
 merge:
-  commanders: []
   script: |-
-    bundle install
-    rake
-deploy: {}
+    bundle exec rake
+    pdd -f /dev/null
+deploy:
+  script: |-
+    echo 'There is nothing to deploy'
+    exit -1
