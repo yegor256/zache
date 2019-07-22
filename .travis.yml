@@ -1,12 +1,13 @@
 language: ruby
 rvm:
   - 2.6.0
+cache: bundler
 branches:
   only:
     - master
 install:
-  - bundle install
+  - travis_retry bundle update
 script:
-  - set -e
-  - rake
-
+  - bundle exec rake
+after_success:
+  - "bash <(curl -s https://codecov.io/bash)"
