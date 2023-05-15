@@ -4,8 +4,7 @@
 [![DevOps By Rultor.com](http://www.rultor.com/b/yegor256/zache)](http://www.rultor.com/p/yegor256/zache)
 [![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
 
-[![Build Status](https://travis-ci.org/yegor256/zache.svg)](https://travis-ci.org/yegor256/zache)
-[![Build status](https://ci.appveyor.com/api/projects/status/7eday736u9phnjiy?svg=true)](https://ci.appveyor.com/project/yegor256/zache)
+[![rake](https://github.com/yegor256/zache/actions/workflows/rake.yml/badge.svg)](https://github.com/yegor256/zache/actions/workflows/rake.yml)
 [![Gem Version](https://badge.fury.io/rb/zache.svg)](http://badge.fury.io/rb/zache)
 [![Maintainability](https://api.codeclimate.com/v1/badges/c136afe340fa94f14696/maintainability)](https://codeclimate.com/github/yegor256/zache/maintainability)
 [![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/yegor256/zache/master/frames)
