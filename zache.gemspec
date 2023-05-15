@@ -24,11 +24,7 @@
 
 require 'English'
 Gem::Specification.new do |s|
-  s.specification_version = 2 if s.respond_to? :specification_version=
-  if s.respond_to? :required_rubygems_version=
-    s.required_rubygems_version = Gem::Requirement.new('>= 0')
-  end
-  s.rubygems_version = '2.5'
+  s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=
   s.required_ruby_version = '>=2.5'
   s.name = 'zache'
   s.version = '0.0.0'
@@ -39,15 +35,7 @@ Gem::Specification.new do |s|
   s.email = 'yegor256@gmail.com'
   s.homepage = 'http://github.com/yegor256/zache'
   s.files = `git ls-files`.split($RS)
-  s.test_files = s.files.grep(%r{^(test)/})
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md']
-  s.add_development_dependency 'codecov', '0.1.10'
-  s.add_development_dependency 'concurrent-ruby', '1.1.3'
-  s.add_development_dependency 'minitest', '5.11.3'
-  s.add_development_dependency 'rake', '12.3.1'
-  s.add_development_dependency 'rdoc', '4.3.0'
-  s.add_development_dependency 'rubocop', '0.62.0'
-  s.add_development_dependency 'rubocop-rspec', '1.31.0'
-  s.add_development_dependency 'threads', '0.3.0'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end

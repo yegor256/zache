@@ -97,12 +97,10 @@ class Zache
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
   # calculated result will be returned if it exists and is already expired.
-  def get(key, lifetime: 2**32, dirty: false)
+  def get(key, lifetime: 2**32, dirty: false, &block)
     if block_given?
-      if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
-        return @hash[key][:value]
-      end
-      synchronized { calc(key, lifetime) { yield } }
+      return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
+      synchronized { calc(key, lifetime, &block) }
     else
       rec = @hash[key]
       if expired?(key)
@@ -171,7 +169,7 @@ class Zache
   # Remove all keys that match the block.
   def remove_by
     synchronized do
-      @hash.keys.each do |k|
+      @hash.each_key do |k|
         @hash.delete(k) if yield(k)
       end
     end
