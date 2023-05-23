@@ -274,4 +274,11 @@ class ZacheTest < Minitest::Test
     cache = Zache::Fake.new
     assert_equal(1, cache.get(:x) { 1 })
   end
+
+  def test_rethrows
+    cache = Zache.new
+    assert_raises RuntimeError do
+      cache.get(:hey) { raise 'intentional' }
+    end
+  end
 end
