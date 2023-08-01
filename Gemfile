@@ -30,4 +30,4 @@ gem 'rdoc', '6.5.0', require: false
 gem 'rubocop', '1.55.1', require: false
 gem 'rubocop-rspec', '2.23.0', require: false
 gem 'simplecov', '0.22.0', require: false
-gem 'threads', '0.3.0', require: false
+gem 'threads', '0.4.0', require: false
