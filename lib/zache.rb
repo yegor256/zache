@@ -97,7 +97,7 @@ class Zache
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
   # calculated result will be returned if it exists and is already expired.
-  def get(key, lifetime: 2**32, fallback: nil, dirty: false, &block)
+  def get(key, lifetime: 2**32, dirty: false, &block)
     if block_given?
       return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
       synchronized { calc(key, lifetime, &block) }
