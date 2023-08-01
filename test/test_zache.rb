@@ -254,7 +254,9 @@ class ZacheTest < Minitest::Test
     cache = Zache.new(dirty: true)
     set = Concurrent::Set.new
     threads = 50
+    barrier = Concurrent::CyclicBarrier.new(threads)
     Threads.new(threads).assert(threads * 2) do |i|
+      barrier.wait if i < threads
       set << cache.get(i, lifetime: 0.001) { i }
     end
     assert_equal(threads, set.size)
@@ -264,7 +266,9 @@ class ZacheTest < Minitest::Test
     cache = Zache.new
     set = Concurrent::Set.new
     threads = 50
+    barrier = Concurrent::CyclicBarrier.new(threads)
     Threads.new(threads).assert(threads * 2) do |i|
+      barrier.wait if i < threads
       set << cache.get(i) { i }
     end
     assert_equal(threads, set.size)
