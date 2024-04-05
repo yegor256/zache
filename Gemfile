@@ -25,7 +25,7 @@ gemspec
 
 gem 'concurrent-ruby', '1.2.3', require: false
 gem 'minitest', '5.20.0', require: false
-gem 'rake', '13.2.0', require: false
+gem 'rake', '13.2.1', require: false
 gem 'rdoc', '6.6.3.1', require: false
 gem 'rubocop', '1.57.2', require: false
 gem 'rubocop-rspec', '2.29.1', require: false
