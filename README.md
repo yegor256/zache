@@ -1,4 +1,4 @@
-<img src="/logo.svg" width="64px" height="64px"/>
+# In Memory Cache for Ruby
 
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![DevOps By Rultor.com](http://www.rultor.com/b/yegor256/zache)](http://www.rultor.com/p/yegor256/zache)
@@ -19,7 +19,7 @@ to understand what Zache is for.
 First, install it:
 
 ```bash
-$ gem install zache
+gem install zache
 ```
 
 Then, use it like this
@@ -46,21 +46,24 @@ while another one calls `get` again. That second thread won't wait, but will
 receive what's left in the cache. This is a very convenient mode for situations
 when you don't really care about data accuracy, but performance is an issue.
 
-The entire API is documented [here](https://www.rubydoc.info/github/yegor256/zache/master/Zache)
+The entire API is documented
+[here](https://www.rubydoc.info/github/yegor256/zache/master/Zache)
 (there are many other convenient methods).
 
 That's it.
 
 ## How to contribute
 
-Read [these guidelines](https://www.yegor256.com/2014/04/15/github-guidelines.html).
+Read
+[these guidelines](https://www.yegor256.com/2014/04/15/github-guidelines.html).
 Make sure you build is green before you contribute
-your pull request. You will need to have [Ruby](https://www.ruby-lang.org/en/) 2.3+ and
+your pull request. You will need to have
+[Ruby](https://www.ruby-lang.org/en/) 2.3+ and
 [Bundler](https://bundler.io/) installed. Then:
 
-```
-$ bundle update
-$ bundle exec rake
+```bash
+bundle update
+bundle exec rake
 ```
 
 If it's clean and you don't see any error messages, submit your pull request.
