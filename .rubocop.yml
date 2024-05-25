@@ -29,6 +29,7 @@ AllCops:
 Metrics/ClassLength:
   Exclude:
     - 'test/*.rb'
+    - 'vendor/**/**'
 Layout/EmptyLineAfterGuardClause:
   Enabled: false
 Layout/MultilineMethodCallIndentation:
