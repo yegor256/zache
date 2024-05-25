@@ -155,7 +155,7 @@ class Zache
     end
   end
 
-  # Removes the value from the hash, by the provied key. If the key is absent
+  # Removes the value from the cache, by the provided key. If the key is absent
   # and the block is provided, the block will be called.
   def remove(key)
     synchronized { @hash.delete(key) { yield if block_given? } }
