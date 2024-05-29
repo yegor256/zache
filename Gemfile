@@ -23,7 +23,7 @@
 source 'https://rubygems.org'
 gemspec
 
-gem 'concurrent-ruby', '1.2.3', require: false
+gem 'concurrent-ruby', '1.3.1', require: false
 gem 'minitest', '5.23.1', require: false
 gem 'rake', '13.2.1', require: false
 gem 'rdoc', '6.7.0', require: false
