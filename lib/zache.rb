@@ -179,7 +179,7 @@ class Zache
 
   # Remove keys that are expired.
   def clean
-    synchronized { @hash.delete_if { |_key, value| expired?(value) } }
+    synchronized { @hash.delete_if { |key, _value| expired?(key) } }
   end
 
   private
