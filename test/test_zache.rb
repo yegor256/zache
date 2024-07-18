@@ -137,9 +137,10 @@ class ZacheTest < Minitest::Test
   def test_clean_size
     cache = Zache.new
     cache.get(:hey, lifetime: 0.01) { Random.rand }
+    cache.get(:bye, lifetime: 0.01) { Random.rand }
     sleep 0.1
     cache.clean
-    assert(cache.size == 0)
+    assert(cache.empty?)
   end
 
   def test_clean_with_sync_false

@@ -182,6 +182,10 @@ class Zache
     synchronized { @hash.delete_if { |key, _value| expired?(key) } }
   end
 
+  def empty?
+    @hash.empty?
+  end
+
   private
 
   def calc(key, lifetime)
