@@ -134,6 +134,14 @@ class ZacheTest < Minitest::Test
     assert(cache.exists?(:bye) == false)
   end
 
+  def test_clean_size
+    cache = Zache.new
+    cache.get(:hey, lifetime: 0.01) { Random.rand }
+    sleep 0.1
+    cache.clean
+    assert(cache.empty?)
+  end
+
   def test_clean_with_sync_false
     cache = Zache.new(sync: false)
     cache.get(:hey) { Random.rand }
