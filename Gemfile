@@ -24,7 +24,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'concurrent-ruby', '1.3.4', require: false
-gem 'minitest', '5.24.1', require: false
+gem 'minitest', '5.25.0', require: false
 gem 'rake', '13.2.1', require: false
 gem 'rdoc', '6.7.0', require: false
 gem 'rubocop', '1.65.1', require: false
