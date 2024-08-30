@@ -22,7 +22,7 @@ First, install it:
 gem install zache
 ```
 
-Then, use it like this
+Then, use it like this:
 
 ```ruby
 require 'zache'
@@ -30,6 +30,8 @@ zache = Zache.new
 # Expires in 5 minutes
 v = zache.get(:count, lifetime: 5 * 60) { expensive() }
 ```
+
+If you omit the `lifetime` parameter, the key will never expire.
 
 By default `Zache` is thread-safe. It locks the entire cache on each
 `get` call. You turn that off by using `sync` argument:
@@ -49,8 +51,6 @@ when you don't really care about data accuracy, but performance is an issue.
 The entire API is documented
 [here](https://www.rubydoc.info/github/yegor256/zache/master/Zache)
 (there are many other convenient methods).
-
-That's it.
 
 ## How to contribute
 
