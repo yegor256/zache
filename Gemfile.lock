@@ -37,7 +37,7 @@ GEM
       unicode-display_width (>= 2.4.0, < 3.0)
     rubocop-ast (1.32.3)
       parser (>= 3.3.1.0)
-    rubocop-rspec (3.0.5)
+    rubocop-rspec (3.1.0)
       rubocop (~> 1.61)
     ruby-progressbar (1.13.0)
     simplecov (0.22.0)
@@ -50,7 +50,7 @@ GEM
     threads (0.4.0)
       backtrace (~> 0)
       concurrent-ruby (~> 1.0)
-    unicode-display_width (2.5.0)
+    unicode-display_width (2.6.0)
 
 PLATFORMS
   arm64-darwin-22
@@ -64,7 +64,7 @@ DEPENDENCIES
   rake (= 13.2.1)
   rdoc (= 6.7.0)
   rubocop (= 1.66.1)
-  rubocop-rspec (= 3.0.5)
+  rubocop-rspec (= 3.1.0)
   simplecov (= 0.22.0)
   threads (= 0.4.0)
   zache!
