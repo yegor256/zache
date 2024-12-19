@@ -28,6 +28,6 @@ gem 'minitest', '5.25.2', require: false
 gem 'rake', '13.2.1', require: false
 gem 'rdoc', '6.8.1', require: false
 gem 'rubocop', '1.69.0', require: false
-gem 'rubocop-rspec', '3.2.0', require: false
+gem 'rubocop-rspec', '3.3.0', require: false
 gem 'simplecov', '0.22.0', require: false
 gem 'threads', '0.4.0', require: false
