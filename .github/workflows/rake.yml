@@ -21,7 +21,7 @@
 # SOFTWARE.
 ---
 name: rake
-on:
+'on':
   push:
     branches:
       - master
