@@ -35,6 +35,6 @@ jobs:
           ruby-version: 3.0
       - run: bundle install
       - run: bundle exec rake
-      - uses: codecov/codecov-action@v4.0.0-beta.3
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
