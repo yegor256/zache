@@ -25,7 +25,6 @@ AllCops:
   TargetRubyVersion: 2.5
   NewCops: enable
   SuggestExtensions: false
-
 Metrics/ClassLength:
   Exclude:
     - 'test/*.rb'
@@ -46,3 +45,7 @@ Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
   Max: 28
+required:
+  - rubocop-rake
+  - rubocop-minitest
+  - rubocop-performance
