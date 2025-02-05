@@ -45,7 +45,7 @@ Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
   Max: 28
-required:
+require:
   - rubocop-rake
   - rubocop-minitest
   - rubocop-performance
