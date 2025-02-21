@@ -16,4 +16,4 @@ gem 'rubocop-performance', '>0', require: false
 gem 'rubocop-rake', '>0', require: false
 gem 'rubocop-rspec', '>0', require: false
 gem 'simplecov', '0.22.0', require: false
-gem 'threads', '0.4.0', require: false
+gem 'threads', '0.4.1', require: false
