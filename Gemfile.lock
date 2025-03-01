@@ -59,7 +59,7 @@ GEM
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     stringio (3.1.5)
-    threads (0.4.0)
+    threads (0.4.1)
       backtrace (~> 0)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.1.4)
@@ -86,7 +86,7 @@ DEPENDENCIES
   rubocop-rake (> 0)
   rubocop-rspec (> 0)
   simplecov (= 0.22.0)
-  threads (= 0.4.0)
+  threads (= 0.4.1)
   zache!
 
 BUNDLED WITH
