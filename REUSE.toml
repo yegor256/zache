@@ -4,11 +4,6 @@
 version = 1
 [[annotations]]
 path = [
-    "**.json",
-    "**.md",
-    "**.png",
-    "**.svg",
-    "**.txt",
     "**/*.csv",
     "**/*.jpg",
     "**/*.json",
@@ -32,5 +27,5 @@ path = [
     "renovate.json",
 ]
 precedence = "override"
-SPDX-FileCopyrightText = "Copyright (c) 2025 Yegor Bugayenko"
+SPDX-FileCopyrightText = "Copyright (c) 2018-2025 Yegor Bugayenko"
 SPDX-License-Identifier = "MIT"

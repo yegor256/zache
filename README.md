@@ -12,9 +12,9 @@
 [![Test Coverage](https://img.shields.io/codecov/c/github/yegor256/zache.svg)](https://codecov.io/github/yegor256/zache?branch=master)
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/zache)](https://hitsofcode.com/view/github/yegor256/zache)
 
-It's a simple Ruby gem for in-memory cache.
+This is a simple Ruby gem for in-memory caching.
 Read [this blog post](https://www.yegor256.com/2019/02/05/zache.html)
-to understand what Zache is for.
+to understand what Zache is designed for.
 
 First, install it:
 
@@ -34,19 +34,19 @@ v = zache.get(:count, lifetime: 5 * 60) { expensive() }
 If you omit the `lifetime` parameter, the key will never expire.
 
 By default `Zache` is thread-safe. It locks the entire cache on each
-`get` call. You turn that off by using `sync` argument:
+`get` call. You can turn that off by using the `sync` argument:
 
 ```ruby
 zache = Zache.new(sync: false)
 v = zache.get(:count) { expensive() }
 ```
 
-You may use "dirty" mode, which will return you an expired value, while
-calculation is waiting. Say, you have something in the cache, but it's
-expired. Then, you call `get` with a long running block. The thread waits,
-while another one calls `get` again. That second thread won't wait, but will
-receive what's left in the cache. This is a very convenient mode for situations
-when you don't really care about data accuracy, but performance is an issue.
+You may use "dirty" mode, which will return an expired value while
+calculation is in progress. For example, if you have a value in the cache that's
+expired, and you call `get` with a long-running block, the thread waits.
+If another thread calls `get` again, that second thread won't wait, but will
+receive the expired value from the cache. This is a very convenient mode for situations
+where absolute data accuracy is less important than performance.
 
 The entire API is documented
 [here](https://www.rubydoc.info/github/yegor256/zache/master/Zache)
