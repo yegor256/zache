@@ -7,6 +7,7 @@ require 'minitest/autorun'
 require 'threads'
 require 'timeout'
 require 'concurrent'
+require_relative 'test__helper'
 require_relative '../lib/zache'
 
 Thread.report_on_exception = true
