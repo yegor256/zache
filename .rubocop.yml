@@ -10,10 +10,20 @@ Metrics/ClassLength:
   Exclude:
     - 'test/*.rb'
     - 'vendor/**/**'
+plugins:
+  - rubocop-rake
+  - rubocop-minitest
+  - rubocop-performance
+Minitest/EmptyLineBeforeAssertionMethods:
+  Enabled: false
+Minitest/AssertOperator:
+  Enabled: false
 Layout/EmptyLineAfterGuardClause:
   Enabled: false
 Layout/MultilineMethodCallIndentation:
   Enabled: false
+Minitest/MultipleAssertions:
+  Max: 5
 Metrics/AbcSize:
   Max: 30
 Metrics/MethodLength:
@@ -26,7 +36,3 @@ Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
   Max: 28
-require:
-  - rubocop-rake
-  - rubocop-minitest
-  - rubocop-performance

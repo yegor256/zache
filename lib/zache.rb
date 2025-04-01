@@ -184,7 +184,7 @@ class Zache
     if @sync
       @mutex.synchronize(&block)
     else
-      block.call
+      yield
     end
   end
 end
