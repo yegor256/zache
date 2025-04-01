@@ -7,5 +7,11 @@ $stdout.sync = true
 
 require 'simplecov'
 SimpleCov.start
+
+require 'simplecov-cobertura'
+SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+
+require 'minitest/reporters'
+Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
+
 require 'minitest/autorun'
-require_relative '../lib/zache'
