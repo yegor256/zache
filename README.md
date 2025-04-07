@@ -1,13 +1,13 @@
 # In Memory Cache for Ruby
 
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
-[![DevOps By Rultor.com](http://www.rultor.com/b/yegor256/zache)](http://www.rultor.com/p/yegor256/zache)
+[![DevOps By Rultor.com](https://www.rultor.com/b/yegor256/zache)](https://www.rultor.com/p/yegor256/zache)
 [![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
 
 [![rake](https://github.com/yegor256/zache/actions/workflows/rake.yml/badge.svg)](https://github.com/yegor256/zache/actions/workflows/rake.yml)
-[![Gem Version](https://badge.fury.io/rb/zache.svg)](http://badge.fury.io/rb/zache)
+[![Gem Version](https://badge.fury.io/rb/zache.svg)](https://badge.fury.io/rb/zache)
 [![Maintainability](https://api.codeclimate.com/v1/badges/c136afe340fa94f14696/maintainability)](https://codeclimate.com/github/yegor256/zache/maintainability)
-[![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/yegor256/zache/master/frames)
+[![Yard Docs](https://img.shields.io/badge/yard-docs-blue.svg)](https://rubydoc.info/github/yegor256/zache/master/frames)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/zache/blob/master/LICENSE.txt)
 [![Test Coverage](https://img.shields.io/codecov/c/github/yegor256/zache.svg)](https://codecov.io/github/yegor256/zache?branch=master)
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/zache)](https://hitsofcode.com/view/github/yegor256/zache)
