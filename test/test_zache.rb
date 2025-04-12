@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2018-2025 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
+require 'concurrent'
 require 'minitest/autorun'
 require 'threads'
 require 'timeout'
-require 'concurrent'
-require_relative 'test__helper'
 require_relative '../lib/zache'
+require_relative 'test__helper'
 
 Thread.report_on_exception = true
 
@@ -19,23 +19,23 @@ Thread.report_on_exception = true
 class ZacheTest < Minitest::Test
   def test_caches
     cache = Zache.new(sync: false)
-    first = cache.get(:hey, lifetime: 5) { Random.rand }
-    second = cache.get(:hey) { Random.rand }
+    first = cache.get(:hey, lifetime: 5) { rand }
+    second = cache.get(:hey) { rand }
     assert_equal(first, second)
     assert_equal(1, cache.size)
   end
 
   def test_caches_and_expires
     cache = Zache.new
-    first = cache.get(:hey, lifetime: 0.01) { Random.rand }
+    first = cache.get(:hey, lifetime: 0.01) { rand }
     sleep 0.1
-    second = cache.get(:hey) { Random.rand }
+    second = cache.get(:hey) { rand }
     refute_equal(first, second)
   end
 
   def test_calculates_age
     cache = Zache.new
-    cache.get(:hey) { Random.rand }
+    cache.get(:hey) { rand }
     sleep 0.1
     assert_operator(cache.mtime(:hey), :<, Time.now - 0.05)
   end
@@ -43,13 +43,13 @@ class ZacheTest < Minitest::Test
   def test_caches_in_threads
     cache = Zache.new
     Threads.new(10).assert(100) do
-      cache.get(:hey, lifetime: 0.0001) { Random.rand }
+      cache.get(:hey, lifetime: 0.0001) { rand }
     end
   end
 
   def test_key_exists
     cache = Zache.new
-    cache.get(:hey) { Random.rand }
+    cache.get(:hey) { rand }
     exists_result = cache.exists?(:hey)
     not_exists_result = cache.exists?(:bye)
     assert(exists_result)
@@ -65,8 +65,8 @@ class ZacheTest < Minitest::Test
 
   def test_remove_key
     cache = Zache.new
-    cache.get(:hey) { Random.rand }
-    cache.get(:wey) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:wey) { rand }
     assert(cache.exists?(:hey))
     assert(cache.exists?(:wey))
     cache.remove(:hey)
@@ -76,8 +76,8 @@ class ZacheTest < Minitest::Test
 
   def test_remove_by_block
     cache = Zache.new
-    cache.get('first') { Random.rand }
-    cache.get('second') { Random.rand }
+    cache.get('first') { rand }
+    cache.get('second') { rand }
     cache.remove_by { |k| k == 'first' }
     refute(cache.exists?('first'))
     assert(cache.exists?('second'))
@@ -85,8 +85,8 @@ class ZacheTest < Minitest::Test
 
   def test_remove_key_with_sync_false
     cache = Zache.new(sync: false)
-    cache.get(:hey) { Random.rand }
-    cache.get(:wey) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:wey) { rand }
     assert(cache.exists?(:hey))
     assert(cache.exists?(:wey))
     cache.remove(:hey)
@@ -97,8 +97,8 @@ class ZacheTest < Minitest::Test
   def test_clean_with_threads
     cache = Zache.new
     Threads.new(300).assert(3000) do
-      cache.get(:hey) { Random.rand }
-      cache.get(:bye, lifetime: 0.01) { Random.rand }
+      cache.get(:hey) { rand }
+      cache.get(:bye, lifetime: 0.01) { rand }
       sleep 0.1
       cache.clean
     end
@@ -108,8 +108,8 @@ class ZacheTest < Minitest::Test
 
   def test_clean
     cache = Zache.new
-    cache.get(:hey) { Random.rand }
-    cache.get(:bye, lifetime: 0.01) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:bye, lifetime: 0.01) { rand }
     sleep 0.1
     cache.clean
     assert(cache.exists?(:hey))
@@ -118,7 +118,7 @@ class ZacheTest < Minitest::Test
 
   def test_clean_size
     cache = Zache.new
-    cache.get(:hey, lifetime: 0.01) { Random.rand }
+    cache.get(:hey, lifetime: 0.01) { rand }
     sleep 0.1
     cache.clean
     assert_empty(cache)
@@ -126,8 +126,8 @@ class ZacheTest < Minitest::Test
 
   def test_clean_with_sync_false
     cache = Zache.new(sync: false)
-    cache.get(:hey) { Random.rand }
-    cache.get(:bye, lifetime: 0.01) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:bye, lifetime: 0.01) { rand }
     sleep 0.1
     cache.clean
     assert(cache.exists?(:hey))
@@ -141,14 +141,14 @@ class ZacheTest < Minitest::Test
 
   def test_check_and_remove
     cache = Zache.new
-    cache.get(:hey, lifetime: 0) { Random.rand }
+    cache.get(:hey, lifetime: 0) { rand }
     refute(cache.exists?(:hey))
   end
 
   def test_remove_all_with_threads
     cache = Zache.new
     Threads.new(10).assert(100) do |i|
-      cache.get(:"hey#{i}") { Random.rand }
+      cache.get(:"hey#{i}") { rand }
       assert(cache.exists?(:"hey#{i}"))
       cache.remove_all
     end
@@ -159,8 +159,8 @@ class ZacheTest < Minitest::Test
 
   def test_remove_all_with_sync
     cache = Zache.new
-    cache.get(:hey) { Random.rand }
-    cache.get(:bye) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:bye) { rand }
     cache.remove_all
     refute(cache.exists?(:hey))
     refute(cache.exists?(:bye))
@@ -168,8 +168,8 @@ class ZacheTest < Minitest::Test
 
   def test_remove_all_without_sync
     cache = Zache.new(sync: false)
-    cache.get(:hey) { Random.rand }
-    cache.get(:bye) { Random.rand }
+    cache.get(:hey) { rand }
+    cache.get(:bye) { rand }
     cache.remove_all
     refute(cache.exists?(:hey))
     refute(cache.exists?(:bye))
@@ -177,7 +177,7 @@ class ZacheTest < Minitest::Test
 
   def test_puts_something_in
     cache = Zache.new(sync: false)
-    cache.get(:hey) { Random.rand }
+    cache.get(:hey) { rand }
     cache.put(:hey, 123)
     assert_equal(123, cache.get(:hey))
   end
@@ -274,5 +274,11 @@ class ZacheTest < Minitest::Test
     assert_raises RuntimeError do
       cache.get(:hey) { raise 'intentional' }
     end
+  end
+
+  private
+
+  def rand
+    Random.rand
   end
 end
