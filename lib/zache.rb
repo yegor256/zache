@@ -80,6 +80,10 @@ class Zache
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
   # calculated result will be returned if it exists, even if it is already expired.
+  #
+  # @param sync [Boolean] Whether the hash is thread-safe
+  # @param dirty [Boolean] Whether to return expired values
+  # @return [Zache] A new instance of the cache
   def initialize(sync: true, dirty: false)
     @hash = {}
     @sync = sync
@@ -88,6 +92,8 @@ class Zache
   end
 
   # Total number of keys currently in cache.
+  #
+  # @return [Integer] Number of keys in the cache
   def size
     @hash.size
   end
@@ -103,6 +109,13 @@ class Zache
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
   # calculated result will be returned if it exists, even if it is already expired.
+  #
+  # @param key [Object] The key to retrieve from the cache
+  # @param lifetime [Integer] Time in seconds until the key expires
+  # @param dirty [Boolean] Whether to return expired values
+  # @yield Block to calculate the value if not in cache
+  # @yieldreturn [Object] The value to cache
+  # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, &block)
     if block_given?
       return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
@@ -122,6 +135,10 @@ class Zache
   # Checks whether the value exists in the cache by the provided key. Returns
   # TRUE if the value is here. If the key is already expired in the cache,
   # it will be removed by this method and the result will be FALSE.
+  #
+  # @param key [Object] The key to check in the cache
+  # @param dirty [Boolean] Whether to consider expired values as existing
+  # @return [Boolean] True if the key exists and is not expired (unless dirty is true)
   def exists?(key, dirty: false)
     rec = @hash[key]
     if expired?(key) && !dirty && !@dirty
@@ -133,6 +150,9 @@ class Zache
 
   # Checks whether the key exists in the cache and is expired. If the
   # key is absent FALSE is returned.
+  #
+  # @param key [Object] The key to check in the cache
+  # @return [Boolean] True if the key exists and is expired
   def expired?(key)
     rec = @hash[key]
     !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
@@ -140,12 +160,17 @@ class Zache
 
   # Returns the modification time of the key, if it exists.
   # If not, current time is returned.
+  #
+  # @param key [Object] The key to get the modification time for
+  # @return [Time] The modification time of the key or current time if key doesn't exist
   def mtime(key)
     rec = @hash[key]
     rec.nil? ? Time.now : rec[:start]
   end
 
   # Is cache currently locked doing something?
+  #
+  # @return [Boolean] True if the cache is locked
   def locked?
     @mutex.locked?
   end
@@ -168,11 +193,17 @@ class Zache
 
   # Removes the value from the cache, by the provided key. If the key is absent
   # and the block is provided, the block will be called.
+  #
+  # @param key [Object] The key to remove from the cache
+  # @yield Block to call if the key is not found
+  # @return [Object] The removed value or the result of the block
   def remove(key)
     synchronized { @hash.delete(key) { yield if block_given? } }
   end
 
   # Remove all keys from the cache.
+  #
+  # @return [Hash] Empty hash
   def remove_all
     synchronized { @hash = {} }
   end
@@ -208,6 +239,8 @@ class Zache
   end
 
   # Returns TRUE if the cache is empty, FALSE otherwise.
+  #
+  # @return [Boolean] True if the cache is empty
   def empty?
     @hash.empty?
   end
