@@ -22,28 +22,53 @@ class Zache
   # does. It implements all methods of the original class, but doesn't do
   # any caching. This is very useful for testing.
   class Fake
+    # Returns a fixed size of 1.
+    # @return [Integer] Always returns 1
     def size
       1
     end
 
+    # Always returns the result of the block, never caches.
+    # @param [Object] key Ignored
+    # @param [Hash] opts Ignored
+    # @yield Block that provides the value
+    # @return [Object] The result of the block
     def get(*)
       yield
     end
 
+    # Always returns true regardless of the key.
+    # @param [Object] key Ignored
+    # @param [Hash] opts Ignored
+    # @return [Boolean] Always returns true
     def exists?(*)
       true
     end
 
+    # Always returns false.
+    # @return [Boolean] Always returns false
     def locked?
       false
     end
 
+    # No-op method that ignores the input.
+    # @param [Object] key Ignored
+    # @param [Object] value Ignored
+    # @param [Hash] opts Ignored
+    # @return [nil] Always returns nil
     def put(*); end
 
+    # No-op method that ignores the key.
+    # @param [Object] _key Ignored
+    # @return [nil] Always returns nil
     def remove(_key); end
 
+    # No-op method.
+    # @return [nil] Always returns nil
     def remove_all; end
 
+    # No-op method.
+    # @return [nil] Always returns nil
     def clean; end
   end
 
@@ -54,7 +79,7 @@ class Zache
   # unless you really know what you are doing.
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
-  # calculated result will be returned if it exists and is already expired.
+  # calculated result will be returned if it exists, even if it is already expired.
   def initialize(sync: true, dirty: false)
     @hash = {}
     @sync = sync
@@ -71,13 +96,13 @@ class Zache
   #
   # If the value is not
   # found in the cache, it will be calculated via the provided block. If
-  # the block is not given, an exception will be raised (unless <tt>dirty</tt>
-  # is set to <tt>true</tt>). The lifetime
+  # the block is not given and the key doesn't exist or is expired, an exception will be raised
+  # (unless <tt>dirty</tt> is set to <tt>true</tt>). The lifetime
   # must be in seconds. The default lifetime is huge, which means that the
   # key will never be expired.
   #
   # If the <tt>dirty</tt> argument is set to <tt>true</tt>, a previously
-  # calculated result will be returned if it exists and is already expired.
+  # calculated result will be returned if it exists, even if it is already expired.
   def get(key, lifetime: 2**32, dirty: false, &block)
     if block_given?
       return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
@@ -95,7 +120,7 @@ class Zache
   end
 
   # Checks whether the value exists in the cache by the provided key. Returns
-  # TRUE if the value is here. If the key is already expired in the hash,
+  # TRUE if the value is here. If the key is already expired in the cache,
   # it will be removed by this method and the result will be FALSE.
   def exists?(key, dirty: false)
     rec = @hash[key]
@@ -126,6 +151,11 @@ class Zache
   end
 
   # Put a value into the cache.
+  #
+  # @param key [Object] The key to store the value under
+  # @param value [Object] The value to store in the cache
+  # @param lifetime [Integer] Time in seconds until the key expires (default: never expires)
+  # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
     synchronized do
       @hash[key] = {
@@ -148,25 +178,47 @@ class Zache
   end
 
   # Remove all keys that match the block.
+  #
+  # @yield [key] Block that should return true for keys to be removed
+  # @yieldparam key [Object] The cache key to evaluate
+  # @return [Integer] Number of keys removed
   def remove_by
     synchronized do
+      count = 0
       @hash.each_key do |k|
-        @hash.delete(k) if yield(k)
+        if yield(k)
+          @hash.delete(k)
+          count += 1
+        end
       end
+      count
     end
   end
 
-  # Remove keys that are expired.
+  # Remove keys that are expired. This cleans up the cache by removing all keys
+  # where the lifetime has been exceeded.
+  #
+  # @return [Integer] Number of keys removed
   def clean
-    synchronized { @hash.delete_if { |key, _value| expired?(key) } }
+    synchronized do
+      size_before = @hash.size
+      @hash.delete_if { |key, _value| expired?(key) }
+      size_before - @hash.size
+    end
   end
 
+  # Returns TRUE if the cache is empty, FALSE otherwise.
   def empty?
     @hash.empty?
   end
 
   private
 
+  # Calculates or retrieves a cached value for the given key.
+  # @param key [Object] The key to store the value under
+  # @param lifetime [Integer] Time in seconds until the key expires
+  # @yield Block that provides the value if not cached
+  # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
     rec = @hash[key]
     rec = nil if expired?(key)
@@ -180,6 +232,10 @@ class Zache
     @hash[key][:value]
   end
 
+  # Executes a block within a synchronized context if sync is enabled.
+  # @param block [Proc] The block to execute
+  # @yield The block to execute in a synchronized context
+  # @return [Object] The result of the block
   def synchronized(&block)
     if @sync
       @mutex.synchronize(&block)

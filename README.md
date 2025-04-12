@@ -28,7 +28,7 @@ Then, use it like this:
 require 'zache'
 zache = Zache.new
 # Expires in 5 minutes
-v = zache.get(:count, lifetime: 5 * 60) { expensive() }
+v = zache.get(:count, lifetime: 5 * 60) { expensive_calculation() }
 ```
 
 If you omit the `lifetime` parameter, the key will never expire.
@@ -38,7 +38,7 @@ By default `Zache` is thread-safe. It locks the entire cache on each
 
 ```ruby
 zache = Zache.new(sync: false)
-v = zache.get(:count) { expensive() }
+v = zache.get(:count) { expensive_calculation() }
 ```
 
 You may use "dirty" mode, which will return an expired value while
@@ -46,11 +46,37 @@ calculation is in progress. For example, if you have a value in the cache that's
 expired, and you call `get` with a long-running block, the thread waits.
 If another thread calls `get` again, that second thread won't wait, but will
 receive the expired value from the cache. This is a very convenient mode for situations
-where absolute data accuracy is less important than performance.
+where absolute data accuracy is less important than performance:
+
+```ruby
+zache = Zache.new(dirty: true)
+# Or enable dirty mode for a specific get call
+value = zache.get(:key, dirty: true) { expensive_calculation() }
+```
 
 The entire API is documented
-[here](https://www.rubydoc.info/github/yegor256/zache/master/Zache)
-(there are many other convenient methods).
+[here](https://www.rubydoc.info/github/yegor256/zache/master/Zache).
+Here are some additional useful methods:
+
+```ruby
+# Check if a key exists
+zache.exists?(:key)
+
+# Remove a key
+zache.remove(:key)
+
+# Remove all keys
+zache.remove_all
+
+# Remove keys that match a condition
+zache.remove_by { |key| key.to_s.start_with?('temp_') }
+
+# Clean up expired keys
+zache.clean
+
+# Check if cache is empty
+zache.empty?
+```
 
 ## How to contribute
 
