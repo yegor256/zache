@@ -113,13 +113,28 @@ class Zache
   # @param key [Object] The key to retrieve from the cache
   # @param lifetime [Integer] Time in seconds until the key expires
   # @param dirty [Boolean] Whether to return expired values
+  # @param eager [Boolean] Whether to return placeholder while working?
+  # @param placeholder [Object] The placeholder to return in eager mode
   # @yield Block to calculate the value if not in cache
   # @yieldreturn [Object] The value to cache
   # @return [Object] The cached value
-  def get(key, lifetime: 2**32, dirty: false, &block)
+  def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
       return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
-      synchronized { calc(key, lifetime, &block) }
+      if eager
+        return @hash[key][:value] if @hash.key?(key)
+        put(key, placeholder, lifetime: 0)
+        Thread.new do
+          synchronized do
+            calc(key, lifetime, &block)
+          end
+        end
+        placeholder
+      else
+        synchronized do
+          calc(key, lifetime, &block)
+        end
+      end
     else
       rec = @hash[key]
       if expired?(key)

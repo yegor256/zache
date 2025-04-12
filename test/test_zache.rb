@@ -276,6 +276,18 @@ class ZacheTest < Minitest::Test
     end
   end
 
+  def test_returns_placeholder_in_eager_mode
+    cache = Zache.new
+    a = cache.get(:me, placeholder: 42, eager: true) do
+      sleep 0.1
+      43
+    end
+    assert_equal(42, a)
+    sleep 0.2
+    b = cache.get(:me)
+    assert_equal(43, b)
+  end
+
   private
 
   def rand

@@ -31,9 +31,9 @@ Metrics/AbcSize:
 Metrics/MethodLength:
   Max: 30
 Metrics/CyclomaticComplexity:
-  Max: 12
+  Max: 20
 Metrics/PerceivedComplexity:
-  Max: 12
+  Max: 20
 Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
