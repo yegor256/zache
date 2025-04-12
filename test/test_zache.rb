@@ -5,6 +5,7 @@
 
 require 'concurrent'
 require 'minitest/autorun'
+require 'securerandom'
 require 'threads'
 require 'timeout'
 require_relative '../lib/zache'
@@ -291,6 +292,6 @@ class ZacheTest < Minitest::Test
   private
 
   def rand
-    Random.rand
+    SecureRandom.uuid
   end
 end
