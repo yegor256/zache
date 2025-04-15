@@ -19,274 +19,282 @@ Thread.report_on_exception = true
 # License:: MIT
 class ZacheTest < Minitest::Test
   def test_caches
-    cache = Zache.new(sync: false)
-    first = cache.get(:hey, lifetime: 5) { rand }
-    second = cache.get(:hey) { rand }
+    z = Zache.new(sync: false)
+    first = z.get(:hey, lifetime: 5) { rand }
+    second = z.get(:hey) { rand }
     assert_equal(first, second)
-    assert_equal(1, cache.size)
+    assert_equal(1, z.size)
   end
 
   def test_caches_and_expires
-    cache = Zache.new
-    first = cache.get(:hey, lifetime: 0.01) { rand }
+    z = Zache.new
+    first = z.get(:hey, lifetime: 0.01) { rand }
     sleep 0.1
-    second = cache.get(:hey) { rand }
+    second = z.get(:hey) { rand }
     refute_equal(first, second)
   end
 
   def test_calculates_age
-    cache = Zache.new
-    cache.get(:hey) { rand }
+    z = Zache.new
+    z.get(:hey) { rand }
     sleep 0.1
-    assert_operator(cache.mtime(:hey), :<, Time.now - 0.05)
+    assert_operator(z.mtime(:hey), :<, Time.now - 0.05)
   end
 
   def test_caches_in_threads
-    cache = Zache.new
+    z = Zache.new
     Threads.new(10).assert(100) do
-      cache.get(:hey, lifetime: 0.0001) { rand }
+      z.get(:hey, lifetime: 0.0001) { rand }
     end
   end
 
   def test_key_exists
-    cache = Zache.new
-    cache.get(:hey) { rand }
-    exists_result = cache.exists?(:hey)
-    not_exists_result = cache.exists?(:bye)
+    z = Zache.new
+    z.get(:hey) { rand }
+    exists_result = z.exists?(:hey)
+    not_exists_result = z.exists?(:bye)
     assert(exists_result)
     refute(not_exists_result)
   end
 
   def test_put_and_exists
-    cache = Zache.new
-    cache.put(:hey, 'hello', lifetime: 0.1)
+    z = Zache.new
+    z.put(:hey, 'hello', lifetime: 0.1)
     sleep 0.2
-    refute(cache.exists?(:hey))
+    refute(z.exists?(:hey))
   end
 
   def test_remove_key
-    cache = Zache.new
-    cache.get(:hey) { rand }
-    cache.get(:wey) { rand }
-    assert(cache.exists?(:hey))
-    assert(cache.exists?(:wey))
-    cache.remove(:hey)
-    refute(cache.exists?(:hey))
-    assert(cache.exists?(:wey))
+    z = Zache.new
+    z.get(:hey) { rand }
+    z.get(:wey) { rand }
+    assert(z.exists?(:hey))
+    assert(z.exists?(:wey))
+    z.remove(:hey)
+    refute(z.exists?(:hey))
+    assert(z.exists?(:wey))
   end
 
   def test_remove_by_block
-    cache = Zache.new
-    cache.get('first') { rand }
-    cache.get('second') { rand }
-    cache.remove_by { |k| k == 'first' }
-    refute(cache.exists?('first'))
-    assert(cache.exists?('second'))
+    z = Zache.new
+    z.get('first') { rand }
+    z.get('second') { rand }
+    z.remove_by { |k| k == 'first' }
+    refute(z.exists?('first'))
+    assert(z.exists?('second'))
   end
 
   def test_remove_key_with_sync_false
-    cache = Zache.new(sync: false)
-    cache.get(:hey) { rand }
-    cache.get(:wey) { rand }
-    assert(cache.exists?(:hey))
-    assert(cache.exists?(:wey))
-    cache.remove(:hey)
-    refute(cache.exists?(:hey))
-    assert(cache.exists?(:wey))
+    z = Zache.new(sync: false)
+    z.get(:hey) { rand }
+    z.get(:wey) { rand }
+    assert(z.exists?(:hey))
+    assert(z.exists?(:wey))
+    z.remove(:hey)
+    refute(z.exists?(:hey))
+    assert(z.exists?(:wey))
   end
 
   def test_clean_with_threads
-    cache = Zache.new
+    z = Zache.new
     Threads.new(300).assert(3000) do
-      cache.get(:hey) { rand }
-      cache.get(:bye, lifetime: 0.01) { rand }
+      z.get(:hey) { rand }
+      z.get(:bye, lifetime: 0.01) { rand }
       sleep 0.1
-      cache.clean
+      z.clean
     end
-    assert(cache.exists?(:hey))
-    refute(cache.exists?(:bye))
+    assert(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_clean
-    cache = Zache.new
-    cache.get(:hey) { rand }
-    cache.get(:bye, lifetime: 0.01) { rand }
+    z = Zache.new
+    z.get(:hey) { rand }
+    z.get(:bye, lifetime: 0.01) { rand }
     sleep 0.1
-    cache.clean
-    assert(cache.exists?(:hey))
-    refute(cache.exists?(:bye))
+    z.clean
+    assert(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_clean_size
-    cache = Zache.new
-    cache.get(:hey, lifetime: 0.01) { rand }
+    z = Zache.new
+    z.get(:hey, lifetime: 0.01) { rand }
     sleep 0.1
-    cache.clean
-    assert_empty(cache)
+    z.clean
+    assert_empty(z)
   end
 
   def test_clean_with_sync_false
-    cache = Zache.new(sync: false)
-    cache.get(:hey) { rand }
-    cache.get(:bye, lifetime: 0.01) { rand }
+    z = Zache.new(sync: false)
+    z.get(:hey) { rand }
+    z.get(:bye, lifetime: 0.01) { rand }
     sleep 0.1
-    cache.clean
-    assert(cache.exists?(:hey))
-    refute(cache.exists?(:bye))
+    z.clean
+    assert(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_remove_absent_key
-    cache = Zache.new
-    cache.remove(:hey)
+    z = Zache.new
+    z.remove(:hey)
   end
 
   def test_check_and_remove
-    cache = Zache.new
-    cache.get(:hey, lifetime: 0) { rand }
-    refute(cache.exists?(:hey))
+    z = Zache.new
+    z.get(:hey, lifetime: 0) { rand }
+    refute(z.exists?(:hey))
   end
 
   def test_remove_all_with_threads
-    cache = Zache.new
+    z = Zache.new
     Threads.new(10).assert(100) do |i|
-      cache.get(:"hey#{i}") { rand }
-      assert(cache.exists?(:"hey#{i}"))
-      cache.remove_all
+      z.get(:"hey#{i}") { rand }
+      assert(z.exists?(:"hey#{i}"))
+      z.remove_all
     end
     10.times do |i|
-      refute(cache.exists?(:"hey#{i}"))
+      refute(z.exists?(:"hey#{i}"))
     end
   end
 
   def test_remove_all_with_sync
-    cache = Zache.new
-    cache.get(:hey) { rand }
-    cache.get(:bye) { rand }
-    cache.remove_all
-    refute(cache.exists?(:hey))
-    refute(cache.exists?(:bye))
+    z = Zache.new
+    z.get(:hey) { rand }
+    z.get(:bye) { rand }
+    z.remove_all
+    refute(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_remove_all_without_sync
-    cache = Zache.new(sync: false)
-    cache.get(:hey) { rand }
-    cache.get(:bye) { rand }
-    cache.remove_all
-    refute(cache.exists?(:hey))
-    refute(cache.exists?(:bye))
+    z = Zache.new(sync: false)
+    z.get(:hey) { rand }
+    z.get(:bye) { rand }
+    z.remove_all
+    refute(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_puts_something_in
-    cache = Zache.new(sync: false)
-    cache.get(:hey) { rand }
-    cache.put(:hey, 123)
-    assert_equal(123, cache.get(:hey))
+    z = Zache.new(sync: false)
+    z.get(:hey) { rand }
+    z.put(:hey, 123)
+    assert_equal(123, z.get(:hey))
   end
 
   def test_sync_zache_is_not_reentrant
-    cache = Zache.new
+    z = Zache.new
     assert_raises ThreadError do
-      cache.get(:first) { cache.get(:second) { 1 } }
+      z.get(:first) { z.get(:second) { 1 } }
     end
   end
 
   def test_calculates_only_once
-    cache = Zache.new
+    z = Zache.new
     long = Thread.start do
-      cache.get(:x) do
+      z.get(:x) do
         sleep 0.5
         'first'
       end
     end
     sleep 0.1
-    assert_predicate(cache, :locked?)
-    cache.get(:x) { 'second' }
-    refute_predicate(cache, :locked?)
+    assert_predicate(z, :locked?)
+    z.get(:x) { 'second' }
+    refute_predicate(z, :locked?)
     long.kill
   end
 
   def test_checks_locked_status_from_inside
-    cache = Zache.new
-    cache.get(:x) do
-      assert_predicate(cache, :locked?)
+    z = Zache.new
+    z.get(:x) do
+      assert_predicate(z, :locked?)
       'done'
     end
-    refute_predicate(cache, :locked?)
+    refute_predicate(z, :locked?)
   end
 
   def test_returns_dirty_result
-    cache = Zache.new(dirty: true)
-    cache.get(:x, lifetime: 0) { 1 }
+    z = Zache.new(dirty: true)
+    z.get(:x, lifetime: 0) { 1 }
     long = Thread.start do
-      cache.get(:x) do
+      z.get(:x) do
         sleep 1000
         2
       end
     end
     sleep 0.1
     Timeout.timeout(1) do
-      assert(cache.exists?(:x))
-      assert(cache.expired?(:x))
-      assert_equal(1, cache.get(:x))
-      assert_equal(1, cache.get(:x) { 2 })
+      assert(z.exists?(:x))
+      assert(z.expired?(:x))
+      assert_equal(1, z.get(:x))
+      assert_equal(1, z.get(:x) { 2 })
     end
     long.kill
   end
 
   def test_returns_dirty_result_when_not_locked
-    cache = Zache.new(dirty: true)
-    cache.get(:x, lifetime: 0) { 1 }
-    assert(cache.exists?(:x))
-    assert_equal(1, cache.get(:x))
-    assert_equal(2, cache.get(:x) { 2 })
+    z = Zache.new(dirty: true)
+    z.get(:x, lifetime: 0) { 1 }
+    assert(z.exists?(:x))
+    assert_equal(1, z.get(:x))
+    assert_equal(2, z.get(:x) { 2 })
   end
 
   def test_fetches_multiple_keys_in_many_threads_in_dirty_mode
-    cache = Zache.new(dirty: true)
+    z = Zache.new(dirty: true)
     set = Concurrent::Set.new
     threads = 50
     barrier = Concurrent::CyclicBarrier.new(threads)
     Threads.new(threads).assert(threads * 2) do |i|
       barrier.wait if i < threads
-      set << cache.get(i, lifetime: 0.001) { i }
+      set << z.get(i, lifetime: 0.001) { i }
     end
     assert_equal(threads, set.size)
   end
 
   def test_fetches_multiple_keys_in_many_threads
-    cache = Zache.new
+    z = Zache.new
     set = Concurrent::Set.new
     threads = 50
     barrier = Concurrent::CyclicBarrier.new(threads)
     Threads.new(threads).assert(threads * 2) do |i|
       barrier.wait if i < threads
-      set << cache.get(i) { i }
+      set << z.get(i) { i }
     end
     assert_equal(threads, set.size)
   end
 
   def test_fake_class_works
-    cache = Zache::Fake.new
-    assert_equal(1, cache.get(:x) { 1 })
+    z = Zache::Fake.new
+    assert_equal(1, z.get(:x) { 1 })
   end
 
   def test_rethrows
-    cache = Zache.new
+    z = Zache.new
     assert_raises RuntimeError do
-      cache.get(:hey) { raise 'intentional' }
+      z.get(:hey) { raise 'intentional' }
     end
   end
 
   def test_returns_placeholder_in_eager_mode
-    cache = Zache.new
-    a = cache.get(:me, placeholder: 42, eager: true) do
+    z = Zache.new
+    a = z.get(:me, placeholder: 42, eager: true) do
       sleep 0.1
       43
     end
     assert_equal(42, a)
     sleep 0.2
-    b = cache.get(:me)
+    b = z.get(:me)
     assert_equal(43, b)
+  end
+
+  def test_returns_placeholder_and_releases_lock
+    z = Zache.new
+    z.get(:slow, placeholder: 42, eager: true) do
+      sleep 9999
+    end
+    assert_equal(555, z.get(:fast) { 555 })
   end
 
   private
