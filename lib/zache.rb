@@ -46,8 +46,9 @@ class Zache
     end
 
     # Always returns false.
+    # @param [Object] key Ignored
     # @return [Boolean] Always returns false
-    def locked?
+    def locked?(_key)
       false
     end
 
@@ -121,7 +122,7 @@ class Zache
   # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
-      return @hash[key][:value] if (dirty || @dirty) && locked? && expired?(key) && @hash.key?(key)
+      return @hash[key][:value] if (dirty || @dirty) && locked?(key) && expired?(key) && @hash.key?(key)
       if eager
         return @hash[key][:value] if @hash.key?(key)
         put(key, placeholder, lifetime: 0)
@@ -184,11 +185,12 @@ class Zache
     rec.nil? ? Time.now : rec[:start]
   end
 
-  # Is cache currently locked doing something?
+  # Is key currently locked doing something?
   #
+  # @param [Object] key The key to check
   # @return [Boolean] True if the cache is locked
-  def locked?
-    @mutex.locked?
+  def locked?(key)
+    @locks[key]&.locked?
   end
 
   # Put a value into the cache.
@@ -297,6 +299,9 @@ class Zache
   # @return [Object] The result of the block
   def synchronize_one(key, &block)
     return yield unless @sync
-    @mutex.synchronize(&block)
+    @mutex.synchronize do
+      @locks[key] ||= Mutex.new
+    end
+    @locks[key].synchronize(&block)
   end
 end

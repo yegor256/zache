@@ -186,8 +186,13 @@ class ZacheTest < Minitest::Test
   def test_sync_zache_is_not_reentrant
     z = Zache.new
     assert_raises ThreadError do
-      z.get(:first) { z.get(:second) { 1 } }
+      z.get(:first) { z.get(:first) { 1 } }
     end
+  end
+
+  def test_sync_zache_is_reentrant_for_different_keys
+    z = Zache.new
+    z.get(:first) { z.get(:second) { 1 } }
   end
 
   def test_calculates_only_once
@@ -199,19 +204,19 @@ class ZacheTest < Minitest::Test
       end
     end
     sleep 0.1
-    assert_predicate(z, :locked?)
+    assert(z.locked?(:x))
     z.get(:x) { 'second' }
-    refute_predicate(z, :locked?)
+    refute(z.locked?(:x))
     long.kill
   end
 
   def test_checks_locked_status_from_inside
     z = Zache.new
     z.get(:x) do
-      assert_predicate(z, :locked?)
+      assert(z.locked?(:x))
       'done'
     end
-    refute_predicate(z, :locked?)
+    refute(z.locked?(:x))
   end
 
   def test_returns_dirty_result
@@ -290,7 +295,6 @@ class ZacheTest < Minitest::Test
   end
 
   def test_returns_placeholder_and_releases_lock
-    skip
     z = Zache.new
     z.get(:slow, placeholder: 42, eager: true) do
       sleep 9999
