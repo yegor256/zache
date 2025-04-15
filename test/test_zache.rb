@@ -294,6 +294,7 @@ class ZacheTest < Minitest::Test
     z.get(:slow, placeholder: 42, eager: true) do
       sleep 9999
     end
+    sleep 0.1
     assert_equal(555, z.get(:fast) { 555 })
   end
 
