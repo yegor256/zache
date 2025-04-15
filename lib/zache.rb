@@ -89,6 +89,7 @@ class Zache
     @sync = sync
     @dirty = dirty
     @mutex = Mutex.new
+    @locks = {}
   end
 
   # Total number of keys currently in cache.
@@ -125,13 +126,13 @@ class Zache
         return @hash[key][:value] if @hash.key?(key)
         put(key, placeholder, lifetime: 0)
         Thread.new do
-          synchronized do
+          synchronize_one(key) do
             calc(key, lifetime, &block)
           end
         end
         placeholder
       else
-        synchronized do
+        synchronize_one(key) do
           calc(key, lifetime, &block)
         end
       end
@@ -197,7 +198,7 @@ class Zache
   # @param lifetime [Integer] Time in seconds until the key expires (default: never expires)
   # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
-    synchronized do
+    synchronize_one(key) do
       @hash[key] = {
         value: value,
         start: Time.now,
@@ -213,14 +214,14 @@ class Zache
   # @yield Block to call if the key is not found
   # @return [Object] The removed value or the result of the block
   def remove(key)
-    synchronized { @hash.delete(key) { yield if block_given? } }
+    synchronize_one(key) { @hash.delete(key) { yield if block_given? } }
   end
 
   # Remove all keys from the cache.
   #
   # @return [Hash] Empty hash
   def remove_all
-    synchronized { @hash = {} }
+    synchronize_all { @hash = {} }
   end
 
   # Remove all keys that match the block.
@@ -229,7 +230,7 @@ class Zache
   # @yieldparam key [Object] The cache key to evaluate
   # @return [Integer] Number of keys removed
   def remove_by
-    synchronized do
+    synchronize_all do
       count = 0
       @hash.each_key do |k|
         if yield(k)
@@ -246,7 +247,7 @@ class Zache
   #
   # @return [Integer] Number of keys removed
   def clean
-    synchronized do
+    synchronize_all do
       size_before = @hash.size
       @hash.delete_if { |key, _value| expired?(key) }
       size_before - @hash.size
@@ -284,11 +285,18 @@ class Zache
   # @param block [Proc] The block to execute
   # @yield The block to execute in a synchronized context
   # @return [Object] The result of the block
-  def synchronized(&block)
-    if @sync
-      @mutex.synchronize(&block)
-    else
-      yield
-    end
+  def synchronize_all(&block)
+    return yield unless @sync
+    @mutex.synchronize(&block)
+  end
+
+  # Executes a block within a synchronized context if sync is enabled.
+  # @param key [Object] The object to sync
+  # @param block [Proc] The block to execute
+  # @yield The block to execute in a synchronized context
+  # @return [Object] The result of the block
+  def synchronize_one(key, &block)
+    return yield unless @sync
+    @mutex.synchronize(&block)
   end
 end
