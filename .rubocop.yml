@@ -38,3 +38,4 @@ Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
   Max: 28
+require: []

@@ -15,7 +15,7 @@ GEM
     elapsed (0.0.1)
       loog (> 0)
       tago (> 0)
-    json (2.10.2)
+    json (2.11.3)
     language_server-protocol (3.17.0.4)
     lint_roller (1.1.0)
     loog (0.6.0)
@@ -26,8 +26,8 @@ GEM
       minitest (>= 5.0)
       ruby-progressbar
     os (1.1.4)
-    parallel (1.26.3)
-    parser (3.3.7.4)
+    parallel (1.27.0)
+    parser (3.3.8.0)
       ast (~> 2.4.1)
       racc
     prism (1.4.0)
@@ -41,7 +41,7 @@ GEM
     rake (13.2.1)
     regexp_parser (2.10.0)
     rexml (3.4.1)
-    rubocop (1.75.2)
+    rubocop (1.75.5)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
