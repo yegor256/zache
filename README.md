@@ -54,7 +54,7 @@ zache = Zache.new(dirty: true)
 value = zache.get(:key, dirty: true) { expensive_calculation() }
 ```
 
-The entire API is 
+The entire API is
 [documented](https://www.rubydoc.info/github/yegor256/zache/master/Zache).
 Here are some additional useful methods:
 
