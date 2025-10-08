@@ -21,7 +21,7 @@ GEM
     logger (1.7.0)
     loog (0.6.1)
       logger (~> 1.0)
-    minitest (5.25.5)
+    minitest (5.26.0)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -104,9 +104,9 @@ DEPENDENCIES
   qbash (> 0)
   rake (~> 13.2)
   rubocop (~> 1.75)
-  rubocop-minitest (> 0)
-  rubocop-performance (> 0)
-  rubocop-rake (> 0)
+  rubocop-minitest (~> 0.38)
+  rubocop-performance (~> 1.25)
+  rubocop-rake (~> 0.7)
   simplecov (~> 0.22)
   simplecov-cobertura (~> 2.1)
   threads (~> 0.4)
