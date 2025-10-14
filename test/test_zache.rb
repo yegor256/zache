@@ -142,7 +142,7 @@ class ZacheTest < Minitest::Test
 
   def test_check_and_remove
     z = Zache.new
-    z.get(:hey, lifetime: 0) { rand }
+    z.get(:hey, lifetime: -1) { rand }
     refute(z.exists?(:hey))
   end
 
