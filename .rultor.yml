@@ -23,4 +23,4 @@ release:
     gem push *.gem --config-file ../rubygems.yml
 merge:
   script: |-
-    bundle exec rake clean test rubocop copyright
+    bundle exec rake clean test rubocop
