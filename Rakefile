@@ -8,6 +8,7 @@ require 'qbash'
 require 'rubygems'
 require 'rake'
 require 'rake/clean'
+require 'shellwords'
 
 CLEAN = FileList['coverage']
 
