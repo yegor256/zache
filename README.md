@@ -45,13 +45,25 @@ You may use "dirty" mode, which will return an expired value while
 calculation is in progress. For example, if you have a value in the cache that's
 expired, and you call `get` with a long-running block, the thread waits.
 If another thread calls `get` again, that second thread won't wait, but will
-receive the expired value from the cache. This is a very convenient mode for situations
+receive the expired value from the cache. This is a very
+convenient mode for situations
 where absolute data accuracy is less important than performance:
 
 ```ruby
 zache = Zache.new(dirty: true)
 # Or enable dirty mode for a specific get call
 value = zache.get(:key, dirty: true) { expensive_calculation() }
+```
+
+You may use "eager" mode with a placeholder value to return immediately
+while the calculation happens in the background. The cache returns
+the placeholder
+instantly and spawns a thread to calculate the actual value. This is useful
+when you need to avoid blocking while expensive operations complete:
+
+```ruby
+# Returns 0 immediately, calculates in background
+value = zache.get(:key, eager: true, placeholder: 0) { expensive_calculation() }
 ```
 
 The entire API is
