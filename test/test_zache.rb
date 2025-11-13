@@ -303,6 +303,80 @@ class ZacheTest < Minitest::Test
     assert_equal(555, z.get(:fast) { 555 })
   end
 
+  def test_concurrent_reads_are_thread_safe
+    z = Zache.new
+
+    100.times { |i| z.put(i, "value_#{i}", lifetime: 10) }
+
+    errors = Concurrent::Array.new
+
+    Threads.new(50).assert(1000) do |i|
+      key = i % 100
+      case i % 7
+      when 0
+        z.size
+      when 1
+        z.exists?(key)
+      when 2
+        z.expired?(key)
+      when 3
+        z.mtime(key)
+      when 4
+        z.empty?
+      when 5
+        z.locked?(key)
+      when 6
+        z.get(key)
+      else
+        z.get(key)
+      end
+    rescue StandardError => e
+      errors << e
+    end
+
+    assert_empty(errors, "Thread safety errors occurred: #{errors.map(&:message).join(', ')}")
+    assert_equal(100, z.size)
+  end
+
+  def test_concurrent_reads_with_writes
+    z = Zache.new
+    50.times { |i| z.put(i, "initial_#{i}", lifetime: 10) }
+
+    errors = Concurrent::Array.new
+
+    Threads.new(50).assert(300) do |i|
+      key = i % 50
+      if (i % 5).zero?
+        z.put(key, "updated_#{i}", lifetime: 10)
+      else
+        operation = i % 7
+        case operation
+        when 0
+          z.size
+        when 1
+          z.exists?(key)
+        when 2
+          z.expired?(key)
+        when 3
+          z.mtime(key)
+        when 4
+          z.empty?
+        when 5
+          z.locked?(key)
+        when 6
+          z.get(key)
+        else
+          z.get(key)
+        end
+      end
+    rescue StandardError => e
+      errors << e
+    end
+
+    assert_empty(errors, "Race condition errors: #{errors.map(&:message).join(', ')}")
+    assert_equal(50, z.size, 'Cache should still have 50 keys')
+  end
+
   private
 
   def rand
