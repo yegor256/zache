@@ -312,24 +312,7 @@ class ZacheTest < Minitest::Test
 
     Threads.new(50).assert(1000) do |i|
       key = i % 100
-      case i % 7
-      when 0
-        z.size
-      when 1
-        z.exists?(key)
-      when 2
-        z.expired?(key)
-      when 3
-        z.mtime(key)
-      when 4
-        z.empty?
-      when 5
-        z.locked?(key)
-      when 6
-        z.get(key)
-      else
-        z.get(key)
-      end
+      perform_cache_operation(z, i, key)
     rescue StandardError => e
       errors << e
     end
@@ -341,34 +324,11 @@ class ZacheTest < Minitest::Test
   def test_concurrent_reads_with_writes
     z = Zache.new
     50.times { |i| z.put(i, "initial_#{i}", lifetime: 10) }
-
     errors = Concurrent::Array.new
 
     Threads.new(50).assert(300) do |i|
       key = i % 50
-      if (i % 5).zero?
-        z.put(key, "updated_#{i}", lifetime: 10)
-      else
-        operation = i % 7
-        case operation
-        when 0
-          z.size
-        when 1
-          z.exists?(key)
-        when 2
-          z.expired?(key)
-        when 3
-          z.mtime(key)
-        when 4
-          z.empty?
-        when 5
-          z.locked?(key)
-        when 6
-          z.get(key)
-        else
-          z.get(key)
-        end
-      end
+      perform_cache_operation(z, i, key)
     rescue StandardError => e
       errors << e
     end
@@ -381,5 +341,21 @@ class ZacheTest < Minitest::Test
 
   def rand
     SecureRandom.uuid
+  end
+
+  def perform_cache_operation(cache, iteration, key)
+    if (iteration % 5).zero?
+      cache.put(key, "updated_#{iteration}", lifetime: 10)
+    else
+      case iteration % 7
+      when 0 then cache.size
+      when 1 then cache.exists?(key)
+      when 2 then cache.expired?(key)
+      when 3 then cache.mtime(key)
+      when 4 then cache.empty?
+      when 5 then cache.locked?(key)
+      else cache.get(key)
+      end
+    end
   end
 end

@@ -129,20 +129,14 @@ class Zache
       end
       if eager
         has_key = synchronize_all { @hash.key?(key) }
-        if has_key
-          return synchronize_all { @hash[key][:value] }
-        end
+        return synchronize_all { @hash[key][:value] } if has_key
         put(key, placeholder, lifetime: 0)
         Thread.new do
-          synchronize_one(key) do
-            calc(key, lifetime, &block)
-          end
+          synchronize_one(key) { calc(key, lifetime, &block) }
         end
         placeholder
       else
-        synchronize_one(key) do
-          calc(key, lifetime, &block)
-        end
+        synchronize_one(key) { calc(key, lifetime, &block) }
       end
     else
       synchronize_all do
