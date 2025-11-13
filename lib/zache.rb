@@ -29,8 +29,6 @@ class Zache
     end
 
     # Always returns the result of the block, never caches.
-    # @param [Object] key Ignored
-    # @param [Hash] opts Ignored
     # @yield Block that provides the value
     # @return [Object] The result of the block
     def get(*)
@@ -38,24 +36,19 @@ class Zache
     end
 
     # Always returns true regardless of the key.
-    # @param [Object] key Ignored
-    # @param [Hash] opts Ignored
     # @return [Boolean] Always returns true
     def exists?(*)
       true
     end
 
     # Always returns false.
-    # @param [Object] key Ignored
+    # @param [Object] _key Ignored
     # @return [Boolean] Always returns false
     def locked?(_key)
       false
     end
 
     # No-op method that ignores the input.
-    # @param [Object] key Ignored
-    # @param [Object] value Ignored
-    # @param [Hash] opts Ignored
     # @return [nil] Always returns nil
     def put(*); end
 
