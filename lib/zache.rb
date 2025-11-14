@@ -29,8 +29,6 @@ class Zache
     end
 
     # Always returns the result of the block, never caches.
-    # @param [Object] key Ignored
-    # @param [Hash] opts Ignored
     # @yield Block that provides the value
     # @return [Object] The result of the block
     def get(*)
@@ -38,24 +36,19 @@ class Zache
     end
 
     # Always returns true regardless of the key.
-    # @param [Object] key Ignored
-    # @param [Hash] opts Ignored
     # @return [Boolean] Always returns true
     def exists?(*)
       true
     end
 
     # Always returns false.
-    # @param [Object] key Ignored
+    # @param [Object] _key Ignored
     # @return [Boolean] Always returns false
     def locked?(_key)
       false
     end
 
     # No-op method that ignores the input.
-    # @param [Object] key Ignored
-    # @param [Object] value Ignored
-    # @param [Hash] opts Ignored
     # @return [nil] Always returns nil
     def put(*); end
 
@@ -97,7 +90,7 @@ class Zache
   #
   # @return [Integer] Number of keys in the cache
   def size
-    @hash.size
+    synchronize_all { @hash.size }
   end
 
   # Gets the value from the cache by the provided key.
@@ -122,30 +115,33 @@ class Zache
   # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
-      return @hash[key][:value] if (dirty || @dirty) && locked?(key) && expired?(key) && @hash.key?(key)
+      if (dirty || @dirty) && locked?(key)
+        synchronize_all do
+          return @hash[key][:value] if expired_unsafe?(key) && @hash.key?(key)
+        end
+      end
       if eager
-        return @hash[key][:value] if @hash.key?(key)
+        has_key = synchronize_all { @hash.key?(key) }
+        return synchronize_all { @hash[key][:value] } if has_key
         put(key, placeholder, lifetime: 0)
         Thread.new do
-          synchronize_one(key) do
-            calc(key, lifetime, &block)
-          end
+          synchronize_one(key) { calc(key, lifetime, &block) }
         end
         placeholder
       else
-        synchronize_one(key) do
-          calc(key, lifetime, &block)
-        end
+        synchronize_one(key) { calc(key, lifetime, &block) }
       end
     else
-      rec = @hash[key]
-      if expired?(key)
-        return rec[:value] if dirty || @dirty
-        @hash.delete(key)
-        rec = nil
+      synchronize_all do
+        rec = @hash[key]
+        if expired_unsafe?(key)
+          return rec[:value] if dirty || @dirty
+          @hash.delete(key)
+          rec = nil
+        end
+        raise 'The key is absent in the cache' if rec.nil?
+        rec[:value]
       end
-      raise 'The key is absent in the cache' if rec.nil?
-      rec[:value]
     end
   end
 
@@ -157,12 +153,14 @@ class Zache
   # @param dirty [Boolean] Whether to consider expired values as existing
   # @return [Boolean] True if the key exists and is not expired (unless dirty is true)
   def exists?(key, dirty: false)
-    rec = @hash[key]
-    if expired?(key) && !dirty && !@dirty
-      @hash.delete(key)
-      rec = nil
+    synchronize_all do
+      rec = @hash[key]
+      if expired_unsafe?(key) && !dirty && !@dirty
+        @hash.delete(key)
+        rec = nil
+      end
+      !rec.nil?
     end
-    !rec.nil?
   end
 
   # Checks whether the key exists in the cache and is expired. If the
@@ -171,8 +169,7 @@ class Zache
   # @param key [Object] The key to check in the cache
   # @return [Boolean] True if the key exists and is expired
   def expired?(key)
-    rec = @hash[key]
-    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+    synchronize_all { expired_unsafe?(key) }
   end
 
   # Returns the modification time of the key, if it exists.
@@ -181,8 +178,10 @@ class Zache
   # @param key [Object] The key to get the modification time for
   # @return [Time] The modification time of the key or current time if key doesn't exist
   def mtime(key)
-    rec = @hash[key]
-    rec.nil? ? Time.now : rec[:start]
+    synchronize_all do
+      rec = @hash[key]
+      rec.nil? ? Time.now : rec[:start]
+    end
   end
 
   # Is key currently locked doing something?
@@ -190,7 +189,7 @@ class Zache
   # @param [Object] key The key to check
   # @return [Boolean] True if the cache is locked
   def locked?(key)
-    @locks[key]&.locked?
+    synchronize_all { @locks[key]&.locked? }
   end
 
   # Put a value into the cache.
@@ -251,7 +250,7 @@ class Zache
   def clean
     synchronize_all do
       size_before = @hash.size
-      @hash.delete_if { |key, _value| expired?(key) }
+      @hash.delete_if { |key, _value| expired_unsafe?(key) }
       size_before - @hash.size
     end
   end
@@ -260,7 +259,7 @@ class Zache
   #
   # @return [Boolean] True if the cache is empty
   def empty?
-    @hash.empty?
+    synchronize_all { @hash.empty? }
   end
 
   private
@@ -272,7 +271,7 @@ class Zache
   # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
     rec = @hash[key]
-    rec = nil if expired?(key)
+    rec = nil if expired_unsafe?(key)
     if rec.nil?
       @hash[key] = {
         value: yield,
@@ -281,6 +280,15 @@ class Zache
       }
     end
     @hash[key][:value]
+  end
+
+  # Internal method that checks if a key is expired without acquiring locks.
+  # This should only be called from within a synchronized block.
+  # @param key [Object] The key to check in the cache
+  # @return [Boolean] True if the key exists and is expired
+  def expired_unsafe?(key)
+    rec = @hash[key]
+    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
   end
 
   # Executes a block within a synchronized context if sync is enabled.
