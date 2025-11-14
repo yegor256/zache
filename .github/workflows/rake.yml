@@ -18,6 +18,9 @@ jobs:
         ruby: [3.3]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Configure Git line endings
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1
         with:
