@@ -273,13 +273,14 @@ class Zache
     rec = @hash[key]
     rec = nil if expired_unsafe?(key)
     if rec.nil?
-      @hash[key] = {
+      rec = {
         value: yield,
         start: Time.now,
         lifetime: lifetime
       }
+      @hash[key] = rec
     end
-    @hash[key][:value]
+    rec[:value]
   end
 
   # Internal method that checks if a key is expired without acquiring locks.
