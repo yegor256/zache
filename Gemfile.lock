@@ -79,7 +79,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     tago (0.3.0)
-    threads (0.4.1)
+    threads (0.5.0)
       backtrace (~> 0)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.2.0)
