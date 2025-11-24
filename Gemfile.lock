@@ -33,7 +33,7 @@ GEM
       ast (~> 2.4.1)
       racc
     prism (1.6.0)
-    qbash (0.4.7)
+    qbash (0.4.8)
       backtrace (> 0)
       elapsed (> 0)
       loog (> 0)
