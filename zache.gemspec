@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=
   s.required_ruby_version = '>= 2.5'
   s.name = 'zache'
-  s.version = '0.0.0' # Version should be updated before release
+  s.version = '0.15.1' # Version should be updated before release
   s.license = 'MIT'
   s.summary = 'In-memory Cache'
   s.description = 'Zero-footprint in-memory thread-safe cache'
