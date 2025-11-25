@@ -26,6 +26,12 @@ class ZacheTest < Minitest::Test
     assert_equal(1, z.size)
   end
 
+  def test_caches_with_nil_lifetime
+    z = Zache.new(sync: false)
+    assert_equal(42, z.get(:hey, lifetime: nil) { 42 })
+    assert_equal(42, z.get(:hey, lifetime: nil) { 7 })
+  end
+
   def test_caches_and_expires
     z = Zache.new
     first = z.get(:hey, lifetime: 0.01) { rand }

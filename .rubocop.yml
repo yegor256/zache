@@ -23,7 +23,7 @@ Layout/EmptyLineAfterGuardClause:
 Layout/MultilineMethodCallIndentation:
   Enabled: false
 Metrics/ClassLength:
-  Max: 300
+  Enabled: false
 Minitest/MultipleAssertions:
   Max: 5
 Metrics/AbcSize:

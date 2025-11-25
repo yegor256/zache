@@ -288,7 +288,7 @@ class Zache
   # @return [Boolean] True if the key exists and is expired
   def expired_unsafe?(key)
     rec = @hash[key]
-    !rec.nil? && rec[:start] < Time.now - rec[:lifetime]
+    !rec.nil? && rec[:lifetime] && rec[:start] < Time.now - rec[:lifetime]
   end
 
   # Executes a block within a synchronized context if sync is enabled.
