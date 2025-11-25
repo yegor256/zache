@@ -13,8 +13,7 @@
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/zache)](https://hitsofcode.com/view/github/yegor256/zache)
 
 This is a simple Ruby gem for in-memory caching.
-Read [this blog post](https://www.yegor256.com/2019/02/05/zache.html)
-to understand what Zache is designed for.
+Read this [blog post] to understand what Zache is designed for.
 
 First, install it:
 
@@ -31,23 +30,26 @@ zache = Zache.new
 v = zache.get(:count, lifetime: 5 * 60) { expensive_calculation() }
 ```
 
-If you omit the `lifetime` parameter, the key will never expire.
+If you omit the `lifetime` parameter or set it to `nil`,
+  the key will never expire.
 
-By default `Zache` is thread-safe. It locks the entire cache on each
-`get` call. You can turn that off by using the `sync` argument:
+By default `Zache` is thread-safe.
+It locks the entire cache on each `get` call.
+You can turn that off by using the `sync` argument:
 
 ```ruby
 zache = Zache.new(sync: false)
 v = zache.get(:count) { expensive_calculation() }
 ```
 
-You may use "dirty" mode, which will return an expired value while
-calculation is in progress. For example, if you have a value in the cache that's
-expired, and you call `get` with a long-running block, the thread waits.
-If another thread calls `get` again, that second thread won't wait, but will
-receive the expired value from the cache. This is a very
-convenient mode for situations
-where absolute data accuracy is less important than performance:
+You may use "dirty" mode, which will return
+  an expired value while calculation is in progress.
+For example, if you have a value in the cache that's expired,
+  and you call `get` with a long-running block, the thread waits.
+If another thread calls `get` again, that second thread won't wait,
+  but will receive the expired value from the cache.
+This is a very convenient mode for situations
+  where absolute data accuracy is less important than performance:
 
 ```ruby
 zache = Zache.new(dirty: true)
@@ -56,18 +58,18 @@ value = zache.get(:key, dirty: true) { expensive_calculation() }
 ```
 
 You may use "eager" mode with a placeholder value to return immediately
-while the calculation happens in the background. The cache returns
-the placeholder
-instantly and spawns a thread to calculate the actual value. This is useful
-when you need to avoid blocking while expensive operations complete:
+  while the calculation happens in the background.
+The cache returns the placeholder instantly and spawns
+  a thread to calculate the actual value.
+This is useful when you need to avoid blocking
+  while expensive operations complete:
 
 ```ruby
 # Returns 0 immediately, calculates in background
 value = zache.get(:key, eager: true, placeholder: 0) { expensive_calculation() }
 ```
 
-The entire API is
-[documented](https://www.rubydoc.info/github/yegor256/zache/master/Zache).
+The entire API is [documented][rubydoc].
 Here are some additional useful methods:
 
 ```ruby
@@ -92,12 +94,11 @@ zache.empty?
 
 ## How to contribute
 
-Read
-[these guidelines](https://www.yegor256.com/2014/04/15/github-guidelines.html).
-Make sure your build is green before you contribute
-your pull request. You will need to have
-[Ruby](https://www.ruby-lang.org/en/) 2.3+ and
-[Bundler](https://bundler.io/) installed. Then:
+Read these [guidelines].
+Make sure your build is green before you contribute your pull request.
+You will need to have [Ruby](https://www.ruby-lang.org/en/) 2.3+ and
+  [Bundler](https://bundler.io/) installed.
+Then:
 
 ```bash
 bundle update
@@ -105,3 +106,7 @@ bundle exec rake
 ```
 
 If it's clean and you don't see any error messages, submit your pull request.
+
+[blog post]: https://www.yegor256.com/2019/02/05/zache.html
+[rubydoc]: https://www.rubydoc.info/github/yegor256/zache/master/Zache
+[guidelines]: https://www.yegor256.com/2014/04/15/github-guidelines.html
