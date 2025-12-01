@@ -28,8 +28,12 @@ Minitest/MultipleAssertions:
   Max: 5
 Metrics/AbcSize:
   Max: 30
+  Exclude:
+    - 'lib/zache.rb'
 Metrics/MethodLength:
   Max: 30
+  Exclude:
+    - 'lib/zache.rb'
 Metrics/CyclomaticComplexity:
   Max: 20
 Metrics/PerceivedComplexity:

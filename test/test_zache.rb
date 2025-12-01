@@ -429,14 +429,12 @@ class ZacheTest < Minitest::Test
     threads = []
     threads << Thread.new do
       10.times do
-        begin
-          z.get(:key, lifetime: 0) do
-            sleep 0.01
-            'value'
-          end
-        rescue StandardError => e
-          errors << e
+        z.get(:key, lifetime: 0) do
+          sleep 0.01
+          'value'
         end
+      rescue StandardError => e
+        errors << e
       end
     end
 
@@ -484,17 +482,15 @@ class ZacheTest < Minitest::Test
     20.times do |i|
       threads << Thread.new do
         50.times do |j|
-          begin
-            key = :"key#{i}_#{j}"
-            z.get(key) do
-              sleep 0.0001
-              "value#{i}_#{j}"
-            end
-          rescue NoMethodError => e
-            errors << e
-          rescue StandardError
-            # Ignore other errors for this specific test
+          key = :"key#{i}_#{j}"
+          z.get(key) do
+            sleep 0.0001
+            "value#{i}_#{j}"
           end
+        rescue NoMethodError => e
+          errors << e
+        rescue StandardError
+          # Ignore other errors for this specific test
         end
       end
     end
@@ -507,7 +503,8 @@ class ZacheTest < Minitest::Test
     end
 
     threads.each(&:join)
-    assert_empty(errors, "NoMethodError occurred: #{errors.map { |e| e.message + "\n" + e.backtrace.first(3).join("\n") }.join("\n\n")}")
+    error_details = errors.map { |e| "#{e.message}\n#{e.backtrace.first(3).join("\n")}" }.join("\n\n")
+    assert_empty(errors, "NoMethodError occurred: #{error_details}")
   end
 
   # Test that synchronize_one returns correct mutex

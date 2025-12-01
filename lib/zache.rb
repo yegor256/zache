@@ -126,15 +126,13 @@ class Zache
         return synchronize_all { @hash[key][:value] } if has_key
         put(key, placeholder, lifetime: 0)
         Thread.new do
-          begin
-            synchronize_one(key) { calc(key, lifetime, &block) }
-          rescue StandardError => e
-            synchronize_all do
-              @hash.delete(key)
-              @locks.delete(key)
-            end
-            raise e
+          synchronize_one(key) { calc(key, lifetime, &block) }
+        rescue StandardError => e
+          synchronize_all do
+            @hash.delete(key)
+            @locks.delete(key)
           end
+          raise e
         end
         placeholder
       else
@@ -248,11 +246,10 @@ class Zache
     synchronize_all do
       count = 0
       @hash.each_key do |k|
-        if yield(k)
-          @hash.delete(k)
-          @locks.delete(k)
-          count += 1
-        end
+        next unless yield(k)
+        @hash.delete(k)
+        @locks.delete(k)
+        count += 1
       end
       count
     end
