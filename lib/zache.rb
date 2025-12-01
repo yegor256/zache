@@ -117,7 +117,8 @@ class Zache
     if block_given?
       if (dirty || @dirty) && locked?(key)
         synchronize_all do
-          return @hash[key][:value] if expired_unsafe?(key) && @hash.key?(key)
+          rec = @hash[key]
+          return rec[:value] if !rec.nil? && expired_unsafe?(key)
         end
       end
       if eager
@@ -125,7 +126,15 @@ class Zache
         return synchronize_all { @hash[key][:value] } if has_key
         put(key, placeholder, lifetime: 0)
         Thread.new do
-          synchronize_one(key) { calc(key, lifetime, &block) }
+          begin
+            synchronize_one(key) { calc(key, lifetime, &block) }
+          rescue StandardError => e
+            synchronize_all do
+              @hash.delete(key)
+              @locks.delete(key)
+            end
+            raise e
+          end
         end
         placeholder
       else
@@ -215,14 +224,19 @@ class Zache
   # @yield Block to call if the key is not found
   # @return [Object] The removed value or the result of the block
   def remove(key)
-    synchronize_one(key) { @hash.delete(key) { yield if block_given? } }
+    result = synchronize_one(key) { @hash.delete(key) { yield if block_given? } }
+    synchronize_all { @locks.delete(key) }
+    result
   end
 
   # Remove all keys from the cache.
   #
   # @return [Hash] Empty hash
   def remove_all
-    synchronize_all { @hash = {} }
+    synchronize_all do
+      @hash = {}
+      @locks = {}
+    end
   end
 
   # Remove all keys that match the block.
@@ -236,6 +250,7 @@ class Zache
       @hash.each_key do |k|
         if yield(k)
           @hash.delete(k)
+          @locks.delete(k)
           count += 1
         end
       end
@@ -250,7 +265,11 @@ class Zache
   def clean
     synchronize_all do
       size_before = @hash.size
-      @hash.delete_if { |key, _value| expired_unsafe?(key) }
+      @hash.delete_if do |key, _value|
+        expired = expired_unsafe?(key)
+        @locks.delete(key) if expired
+        expired
+      end
       size_before - @hash.size
     end
   end
@@ -308,9 +327,9 @@ class Zache
   # @return [Object] The result of the block
   def synchronize_one(key, &block)
     return yield unless @sync
-    @mutex.synchronize do
+    mtx = @mutex.synchronize do
       @locks[key] ||= Mutex.new
     end
-    @locks[key].synchronize(&block)
+    mtx.synchronize(&block)
   end
 end

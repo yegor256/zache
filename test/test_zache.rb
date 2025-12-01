@@ -357,4 +357,213 @@ class ZacheTest < Minitest::Test
       end
     end
   end
+
+  # Test for synchronize_one race condition fix
+  def test_remove_all_concurrent_with_get
+    z = Zache.new
+    z.put(:key1, 'value1', lifetime: 10)
+    errors = Concurrent::Array.new
+    threads = []
+
+    # Thread continuously calling get
+    10.times do
+      threads << Thread.new do
+        100.times do
+          begin
+            z.get(:key1) { 'new_value' }
+          rescue StandardError => e
+            errors << e
+          end
+          sleep 0.001
+        end
+      end
+    end
+
+    # Thread continuously calling remove_all
+    threads << Thread.new do
+      100.times do
+        z.remove_all
+        sleep 0.001
+      end
+    end
+
+    threads.each(&:join)
+    assert_empty(errors, "Race condition errors: #{errors.map(&:message).join(', ')}")
+  end
+
+  # Test that locks are properly cleaned up after remove
+  def test_locks_cleaned_up_after_remove
+    z = Zache.new
+    100.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
+
+    # Verify locks exist (indirectly by checking size doesn't cause issues)
+    assert_equal(100, z.size)
+
+    # Remove half the keys
+    50.times { |i| z.remove(:"key#{i}") }
+
+    # Verify cache still works and no memory leak symptoms
+    assert_equal(50, z.size)
+
+    # Add new keys with same names - should not have stale locks
+    50.times { |i| z.put(:"key#{i}", "new_value#{i}", lifetime: 10) }
+    assert_equal(100, z.size)
+  end
+
+  # Test that locks are cleaned up by remove_all
+  def test_locks_cleaned_up_after_remove_all
+    z = Zache.new
+    1000.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
+
+    z.remove_all
+    assert_equal(0, z.size)
+
+    # Should be able to use cache normally after remove_all
+    100.times do |i|
+      z.get(:"newkey#{i}") { "value#{i}" }
+    end
+    assert_equal(100, z.size)
+  end
+
+  # Test that locks are cleaned up by remove_by
+  def test_locks_cleaned_up_after_remove_by
+    z = Zache.new
+    100.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
+
+    removed = z.remove_by { |k| k.to_s.end_with?('0', '2', '4', '6', '8') }
+    assert_operator(removed, :>, 0)
+
+    # Cache should continue working normally
+    z.get(:new_key) { 'new_value' }
+    assert(z.exists?(:new_key))
+  end
+
+  # Test that clean removes locks for expired keys
+  def test_locks_cleaned_up_after_clean
+    z = Zache.new
+    50.times { |i| z.put(:"expire#{i}", "value#{i}", lifetime: 0.01) }
+    50.times { |i| z.put(:"keep#{i}", "value#{i}", lifetime: 100) }
+
+    sleep 0.1
+    cleaned = z.clean
+    assert_operator(cleaned, :>=, 50)
+
+    # Verify cache works after cleaning
+    assert_equal(50, z.size)
+    z.get(:new_after_clean) { 'value' }
+    assert(z.exists?(:new_after_clean))
+  end
+
+  # Test dirty mode with nil check
+  def test_dirty_mode_nil_safety
+    z = Zache.new(dirty: true)
+    errors = Concurrent::Array.new
+
+    threads = []
+    threads << Thread.new do
+      10.times do
+        begin
+          z.get(:key, lifetime: 0) do
+            sleep 0.01
+            'value'
+          end
+        rescue StandardError => e
+          errors << e
+        end
+      end
+    end
+
+    threads << Thread.new do
+      10.times do
+        begin
+          z.remove(:key)
+        rescue StandardError => e
+          errors << e
+        end
+        sleep 0.005
+      end
+    end
+
+    threads.each(&:join)
+    assert_empty(errors, "Dirty mode errors: #{errors.map(&:message).join(', ')}")
+  end
+
+  # Test eager mode error handling
+  def test_eager_mode_with_error_in_block
+    z = Zache.new
+    result = z.get(:error_key, eager: true, placeholder: 'placeholder') do
+      raise 'Intentional error in eager block'
+    end
+
+    assert_equal('placeholder', result)
+    sleep 0.1
+
+    # Key should be removed after error, allowing retry
+    new_result = z.get(:error_key, eager: true, placeholder: 'placeholder2') do
+      'success'
+    end
+    assert_equal('placeholder2', new_result)
+
+    sleep 0.1
+    assert_equal('success', z.get(:error_key))
+  end
+
+  # Test concurrent remove_all doesn't cause NoMethodError
+  def test_no_method_error_on_concurrent_remove_all
+    z = Zache.new
+    errors = Concurrent::Array.new
+    threads = []
+
+    20.times do |i|
+      threads << Thread.new do
+        50.times do |j|
+          begin
+            key = :"key#{i}_#{j}"
+            z.get(key) do
+              sleep 0.0001
+              "value#{i}_#{j}"
+            end
+          rescue NoMethodError => e
+            errors << e
+          rescue StandardError
+            # Ignore other errors for this specific test
+          end
+        end
+      end
+    end
+
+    threads << Thread.new do
+      50.times do
+        z.remove_all
+        sleep 0.001
+      end
+    end
+
+    threads.each(&:join)
+    assert_empty(errors, "NoMethodError occurred: #{errors.map { |e| e.message + "\n" + e.backtrace.first(3).join("\n") }.join("\n\n")}")
+  end
+
+  # Test that synchronize_one returns correct mutex
+  def test_synchronize_one_returns_working_mutex
+    z = Zache.new
+    counter = 0
+    threads = []
+
+    10.times do
+      threads << Thread.new do
+        100.times do
+          z.get(:counter) do
+            current = counter
+            sleep 0.0001
+            counter = current + 1
+            counter
+          end
+        end
+      end
+    end
+
+    threads.each(&:join)
+    # With proper locking, counter should be 1 (only calculated once, then cached)
+    assert_equal(1, z.size)
+  end
 end

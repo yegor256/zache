@@ -10,7 +10,7 @@ require 'rake'
 require 'rake/clean'
 require 'shellwords'
 
-CLEAN = FileList['coverage']
+CLEAN.include('coverage')
 
 def name
   @name ||= File.basename(Dir['*.gemspec'].first, '.*')
@@ -28,6 +28,9 @@ Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
   test.pattern = 'test/**/test_*.rb'
   test.verbose = false
+  test.options = '--verbose' if ENV['VERBOSE']
+  # Disable minitest plugins on Windows to avoid gem conflicts
+  ENV['MT_NO_PLUGINS'] = '1' if OS.windows?
 end
 
 desc 'Run them via Ruby, one by one'
