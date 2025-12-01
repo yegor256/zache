@@ -256,13 +256,13 @@ class Zache
   # @param dirty [Boolean] Whether dirty reads are allowed
   # @return [Boolean] True if dirty value should be returned
   def should_return_dirty?(key, dirty)
-    (dirty || @dirty) && locked?(key) && has_expired_value?(key)
+    (dirty || @dirty) && locked?(key) && expired_value?(key)
   end
 
   # Checks if key has an expired value in cache
   # @param key [Object] The key to check
   # @return [Boolean] True if key exists and is expired
-  def has_expired_value?(key)
+  def expired_value?(key)
     synchronize_all do
       rec = @hash[key]
       !rec.nil? && expired_unsafe?(key)
