@@ -325,39 +325,6 @@ class ZacheTest < Minitest::Test
     assert_equal(50, z.size, 'Cache should still have 50 keys')
   end
 
-  private
-
-  def rand
-    SecureRandom.uuid
-  end
-
-  def run_concurrent_operations(cache, thread_count:, iterations:, key_range:)
-    errors = Concurrent::Array.new
-    Threads.new(thread_count).assert(iterations) do |i|
-      key = i % key_range
-      perform_cache_operation(cache, i, key)
-    rescue StandardError => e
-      errors << e
-    end
-    errors
-  end
-
-  def perform_cache_operation(cache, iteration, key)
-    if (iteration % 5).zero?
-      cache.put(key, "updated_#{iteration}", lifetime: 10)
-    else
-      case iteration % 7
-      when 0 then cache.size
-      when 1 then cache.exists?(key)
-      when 2 then cache.expired?(key)
-      when 3 then cache.mtime(key)
-      when 4 then cache.empty?
-      when 5 then cache.locked?(key)
-      else cache.get(key)
-      end
-    end
-  end
-
   # Test for synchronize_one race condition fix
   def test_remove_all_concurrent_with_get
     z = Zache.new
@@ -565,5 +532,38 @@ class ZacheTest < Minitest::Test
     threads.each(&:join)
     # With proper locking, counter should be 1 (only calculated once, then cached)
     assert_equal(1, z.size)
+  end
+
+  private
+
+  def rand
+    SecureRandom.uuid
+  end
+
+  def run_concurrent_operations(cache, thread_count:, iterations:, key_range:)
+    errors = Concurrent::Array.new
+    Threads.new(thread_count).assert(iterations) do |i|
+      key = i % key_range
+      perform_cache_operation(cache, i, key)
+    rescue StandardError => e
+      errors << e
+    end
+    errors
+  end
+
+  def perform_cache_operation(cache, iteration, key)
+    if (iteration % 5).zero?
+      cache.put(key, "updated_#{iteration}", lifetime: 10)
+    else
+      case iteration % 7
+      when 0 then cache.size
+      when 1 then cache.exists?(key)
+      when 2 then cache.expired?(key)
+      when 3 then cache.mtime(key)
+      when 4 then cache.empty?
+      when 5 then cache.locked?(key)
+      else cache.get(key)
+      end
+    end
   end
 end
