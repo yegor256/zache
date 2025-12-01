@@ -115,40 +115,11 @@ class Zache
   # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
-      if (dirty || @dirty) && locked?(key)
-        synchronize_all do
-          rec = @hash[key]
-          return rec[:value] if !rec.nil? && expired_unsafe?(key)
-        end
-      end
-      if eager
-        has_key = synchronize_all { @hash.key?(key) }
-        return synchronize_all { @hash[key][:value] } if has_key
-        put(key, placeholder, lifetime: 0)
-        Thread.new do
-          synchronize_one(key) { calc(key, lifetime, &block) }
-        rescue StandardError => e
-          synchronize_all do
-            @hash.delete(key)
-            @locks.delete(key)
-          end
-          raise e
-        end
-        placeholder
-      else
-        synchronize_one(key) { calc(key, lifetime, &block) }
-      end
+      return get_dirty_value(key) if should_return_dirty?(key, dirty)
+      return get_eager(key, lifetime, placeholder, &block) if eager
+      synchronize_one(key) { calc(key, lifetime, &block) }
     else
-      synchronize_all do
-        rec = @hash[key]
-        if expired_unsafe?(key)
-          return rec[:value] if dirty || @dirty
-          @hash.delete(key)
-          rec = nil
-        end
-        raise 'The key is absent in the cache' if rec.nil?
-        rec[:value]
-      end
+      get_without_block(key, dirty)
     end
   end
 
@@ -279,6 +250,84 @@ class Zache
   end
 
   private
+
+  # Checks if dirty value should be returned for a locked key
+  # @param key [Object] The key to check
+  # @param dirty [Boolean] Whether dirty reads are allowed
+  # @return [Boolean] True if dirty value should be returned
+  def should_return_dirty?(key, dirty)
+    (dirty || @dirty) && locked?(key) && has_expired_value?(key)
+  end
+
+  # Checks if key has an expired value in cache
+  # @param key [Object] The key to check
+  # @return [Boolean] True if key exists and is expired
+  def has_expired_value?(key)
+    synchronize_all do
+      rec = @hash[key]
+      !rec.nil? && expired_unsafe?(key)
+    end
+  end
+
+  # Gets the dirty cached value without recalculation
+  # @param key [Object] The key to retrieve
+  # @return [Object] The cached value
+  def get_dirty_value(key)
+    synchronize_all { @hash[key][:value] }
+  end
+
+  # Handles eager mode get operation
+  # @param key [Object] The key to retrieve
+  # @param lifetime [Integer] Time in seconds until the key expires
+  # @param placeholder [Object] The placeholder to return immediately
+  # @yield Block that provides the value
+  # @return [Object] The placeholder value
+  def get_eager(key, lifetime, placeholder, &block)
+    return synchronize_all { @hash[key][:value] } if synchronize_all { @hash.key?(key) }
+
+    put(key, placeholder, lifetime: 0)
+    spawn_calculation_thread(key, lifetime, &block)
+    placeholder
+  end
+
+  # Spawns a background thread to calculate the value
+  # @param key [Object] The key to calculate for
+  # @param lifetime [Integer] Time in seconds until the key expires
+  # @yield Block that provides the value
+  def spawn_calculation_thread(key, lifetime, &block)
+    Thread.new do
+      synchronize_one(key) { calc(key, lifetime, &block) }
+    rescue StandardError => e
+      cleanup_failed_key(key)
+      raise e
+    end
+  end
+
+  # Cleans up a key after calculation failure
+  # @param key [Object] The key to clean up
+  def cleanup_failed_key(key)
+    synchronize_all do
+      @hash.delete(key)
+      @locks.delete(key)
+    end
+  end
+
+  # Gets value without a block (retrieval only mode)
+  # @param key [Object] The key to retrieve
+  # @param dirty [Boolean] Whether to return expired values
+  # @return [Object] The cached value
+  def get_without_block(key, dirty)
+    synchronize_all do
+      rec = @hash[key]
+      if expired_unsafe?(key)
+        return rec[:value] if dirty || @dirty
+        @hash.delete(key)
+        rec = nil
+      end
+      raise 'The key is absent in the cache' if rec.nil?
+      rec[:value]
+    end
+  end
 
   # Calculates or retrieves a cached value for the given key.
   # @param key [Object] The key to store the value under
