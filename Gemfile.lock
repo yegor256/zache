@@ -10,7 +10,7 @@ GEM
     ast (2.4.3)
     backtrace (0.4.1)
     builder (3.3.0)
-    concurrent-ruby (1.3.5)
+    concurrent-ruby (1.3.6)
     date (3.5.0)
     docile (1.4.1)
     elapsed (0.2.0)
