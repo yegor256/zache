@@ -7,7 +7,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'concurrent-ruby', '~>1.3', require: false
-gem 'minitest', '~>5.25', require: false
+gem 'minitest', '~>6.0', require: false
 gem 'minitest-reporters', '~>1.7', require: false
 gem 'os', '>0', require: false
 gem 'qbash', '>0', require: false
