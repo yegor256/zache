@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SPDX-FileCopyrightText: Copyright (c) 2018-2025 Yegor Bugayenko
+# SPDX-FileCopyrightText: Copyright (c) 2018-2026 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
 # It is a very simple thread-safe in-memory cache with an ability to expire
@@ -15,7 +15,7 @@
 # {README}[https://github.com/yegor256/zache/blob/master/README.md] file.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2018-2025 Yegor Bugayenko
+# Copyright:: Copyright (c) 2018-2026 Yegor Bugayenko
 # License:: MIT
 class Zache
   # Fake implementation that doesn't cache anything, but behaves like it
