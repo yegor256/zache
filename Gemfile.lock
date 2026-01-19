@@ -13,7 +13,7 @@ GEM
     concurrent-ruby (1.3.6)
     date (3.5.1)
     docile (1.4.1)
-    elapsed (0.2.1)
+    elapsed (0.2.2)
       loog (~> 0.6)
       tago (~> 0.1)
     erb (6.0.1)
@@ -39,7 +39,7 @@ GEM
     psych (5.3.1)
       date
       stringio
-    qbash (0.5.0)
+    qbash (0.6.0)
       backtrace (> 0)
       elapsed (> 0)
       loog (> 0)
