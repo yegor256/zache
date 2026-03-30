@@ -14,7 +14,7 @@ GEM
     date (3.5.1)
     docile (1.4.1)
     drb (2.2.3)
-    elapsed (0.2.2)
+    elapsed (0.3.1)
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
@@ -23,7 +23,7 @@ GEM
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
-    loog (0.7.2)
+    loog (0.8.0)
       ellipsized
       logger (~> 1.0)
     minitest (6.0.2)
@@ -43,7 +43,7 @@ GEM
     psych (5.3.1)
       date
       stringio
-    qbash (0.7.2)
+    qbash (0.8.0)
       backtrace (> 0)
       elapsed (> 0)
       loog (> 0)
