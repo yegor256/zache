@@ -108,7 +108,7 @@ class Zache
   # @param key [Object] The key to retrieve from the cache
   # @param lifetime [Integer] Time in seconds until the key expires
   # @param dirty [Boolean] Whether to return expired values
-  # @param eager [Boolean] Whether to return placeholder while working?
+  # @param eager [Boolean] Whether to return placeholder while working
   # @param placeholder [Object] The placeholder to return in eager mode
   # @yield Block to calculate the value if not in cache
   # @yieldreturn [Object] The value to cache
