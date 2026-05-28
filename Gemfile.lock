@@ -18,8 +18,8 @@ GEM
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
-    erb (6.0.2)
-    json (2.19.3)
+    erb (6.0.4)
+    json (2.19.5)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -35,7 +35,7 @@ GEM
       minitest (>= 5.0, < 7)
       ruby-progressbar
     os (1.1.4)
-    parallel (1.27.0)
+    parallel (2.1.0)
     parser (3.3.11.1)
       ast (~> 2.4.1)
       racc
@@ -43,7 +43,7 @@ GEM
     psych (5.3.1)
       date
       stringio
-    qbash (0.8.3)
+    qbash (0.8.4)
       backtrace (> 0)
       elapsed (> 0)
       loog (> 0)
@@ -55,9 +55,9 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
-    regexp_parser (2.11.3)
+    regexp_parser (2.12.0)
     rexml (3.4.4)
-    rubocop (1.86.1)
+    rubocop (1.86.2)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -71,6 +71,9 @@ GEM
     rubocop-ast (1.49.1)
       parser (>= 3.3.7.2)
       prism (~> 1.7)
+    rubocop-elegant (0.5.1)
+      lint_roller (~> 1.1)
+      rubocop (~> 1.75)
     rubocop-minitest (0.39.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
@@ -101,7 +104,7 @@ GEM
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
-    yard (0.9.42)
+    yard (0.9.44)
 
 PLATFORMS
   arm64-darwin-22
@@ -121,6 +124,7 @@ DEPENDENCIES
   rake (~> 13.2)
   rdoc (~> 7.0)
   rubocop (~> 1.75)
+  rubocop-elegant (~> 0.5)
   rubocop-minitest (~> 0.38)
   rubocop-performance (~> 1.25)
   rubocop-rake (~> 0.7)

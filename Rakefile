@@ -5,9 +5,9 @@
 
 require 'os'
 require 'qbash'
-require 'rubygems'
 require 'rake'
 require 'rake/clean'
+require 'rubygems'
 require 'shellwords'
 
 CLEAN.include('coverage')
@@ -29,7 +29,6 @@ Rake::TestTask.new(:test) do |test|
   test.pattern = 'test/**/test_*.rb'
   test.verbose = false
   test.options = '--verbose' if ENV['VERBOSE']
-  # Disable minitest plugins on Windows to avoid gem conflicts
   ENV['MT_NO_PLUGINS'] = '1' if OS.windows?
 end
 

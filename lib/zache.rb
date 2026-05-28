@@ -90,7 +90,7 @@ class Zache
   #
   # @return [Integer] Number of keys in the cache
   def size
-    synchronize_all { @hash.size }
+    sync { @hash.size }
   end
 
   # Gets the value from the cache by the provided key.
@@ -115,11 +115,11 @@ class Zache
   # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
-      return get_dirty_value(key) if should_return_dirty?(key, dirty)
-      return get_eager(key, lifetime, placeholder, &block) if eager
-      synchronize_one(key) { calc(key, lifetime, &block) }
+      return cached(key) if dirt?(key, dirty)
+      return eager(key, lifetime, placeholder, &block) if eager
+      lock(key) { calc(key, lifetime, &block) }
     else
-      get_without_block(key, dirty)
+      fetch(key, dirty)
     end
   end
 
@@ -131,9 +131,9 @@ class Zache
   # @param dirty [Boolean] Whether to consider expired values as existing
   # @return [Boolean] True if the key exists and is not expired (unless dirty is true)
   def exists?(key, dirty: false)
-    synchronize_all do
+    sync do
       rec = @hash[key]
-      if expired_unsafe?(key) && !dirty && !@dirty
+      if overdue?(key) && !dirty && !@dirty
         @hash.delete(key)
         rec = nil
       end
@@ -147,7 +147,7 @@ class Zache
   # @param key [Object] The key to check in the cache
   # @return [Boolean] True if the key exists and is expired
   def expired?(key)
-    synchronize_all { expired_unsafe?(key) }
+    sync { overdue?(key) }
   end
 
   # Returns the modification time of the key, if it exists.
@@ -156,7 +156,7 @@ class Zache
   # @param key [Object] The key to get the modification time for
   # @return [Time] The modification time of the key or current time if key doesn't exist
   def mtime(key)
-    synchronize_all do
+    sync do
       rec = @hash[key]
       rec.nil? ? Time.now : rec[:start]
     end
@@ -167,7 +167,7 @@ class Zache
   # @param [Object] key The key to check
   # @return [Boolean] True if the cache is locked
   def locked?(key)
-    synchronize_all { @locks[key]&.locked? }
+    sync { @locks[key]&.locked? }
   end
 
   # Put a value into the cache.
@@ -177,12 +177,8 @@ class Zache
   # @param lifetime [Integer] Time in seconds until the key expires (default: never expires)
   # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
-    synchronize_one(key) do
-      @hash[key] = {
-        value: value,
-        start: Time.now,
-        lifetime: lifetime
-      }
+    lock(key) do
+      @hash[key] = { value: value, start: Time.now, lifetime: lifetime }
     end
   end
 
@@ -193,16 +189,15 @@ class Zache
   # @yield Block to call if the key is not found
   # @return [Object] The removed value or the result of the block
   def remove(key)
-    result = synchronize_one(key) { @hash.delete(key) { yield if block_given? } }
-    synchronize_all { @locks.delete(key) }
-    result
+    lock(key) { @hash.delete(key) { yield if block_given? } }
+    sync { @locks.delete(key) }
   end
 
   # Remove all keys from the cache.
   #
   # @return [Hash] Empty hash
   def remove_all
-    synchronize_all do
+    sync do
       @hash = {}
       @locks = {}
     end
@@ -214,7 +209,7 @@ class Zache
   # @yieldparam key [Object] The cache key to evaluate
   # @return [Integer] Number of keys removed
   def remove_by
-    synchronize_all do
+    sync do
       count = 0
       @hash.each_key do |k|
         next unless yield(k)
@@ -231,14 +226,17 @@ class Zache
   #
   # @return [Integer] Number of keys removed
   def clean
-    synchronize_all do
-      size_before = @hash.size
+    sync do
+      count = 0
       @hash.delete_if do |key, _value|
-        expired = expired_unsafe?(key)
-        @locks.delete(key) if expired
+        expired = overdue?(key)
+        if expired
+          @locks.delete(key)
+          count += 1
+        end
         expired
       end
-      size_before - @hash.size
+      count
     end
   end
 
@@ -246,7 +244,7 @@ class Zache
   #
   # @return [Boolean] True if the cache is empty
   def empty?
-    synchronize_all { @hash.empty? }
+    sync { @hash.empty? }
   end
 
   private
@@ -255,25 +253,24 @@ class Zache
   # @param key [Object] The key to check
   # @param dirty [Boolean] Whether dirty reads are allowed
   # @return [Boolean] True if dirty value should be returned
-  def should_return_dirty?(key, dirty)
-    (dirty || @dirty) && locked?(key) && expired_value?(key)
+  def dirt?(key, dirty)
+    (dirty || @dirty) && locked?(key) && stale?(key)
   end
 
   # Checks if key has an expired value in cache
   # @param key [Object] The key to check
   # @return [Boolean] True if key exists and is expired
-  def expired_value?(key)
-    synchronize_all do
-      rec = @hash[key]
-      !rec.nil? && expired_unsafe?(key)
+  def stale?(key)
+    sync do
+      !@hash[key].nil? && overdue?(key)
     end
   end
 
   # Gets the dirty cached value without recalculation
   # @param key [Object] The key to retrieve
   # @return [Object] The cached value
-  def get_dirty_value(key)
-    synchronize_all { @hash[key][:value] }
+  def cached(key)
+    sync { @hash[key][:value] }
   end
 
   # Handles eager mode get operation
@@ -282,11 +279,10 @@ class Zache
   # @param placeholder [Object] The placeholder to return immediately
   # @yield Block that provides the value
   # @return [Object] The placeholder value
-  def get_eager(key, lifetime, placeholder, &block)
-    return synchronize_all { @hash[key][:value] } if synchronize_all { @hash.key?(key) }
-
+  def eager(key, lifetime, placeholder, &block)
+    return sync { @hash[key][:value] } if sync { @hash.key?(key) }
     put(key, placeholder, lifetime: 0)
-    spawn_calculation_thread(key, lifetime, &block)
+    spawn(key, lifetime, &block)
     placeholder
   end
 
@@ -294,19 +290,19 @@ class Zache
   # @param key [Object] The key to calculate for
   # @param lifetime [Integer] Time in seconds until the key expires
   # @yield Block that provides the value
-  def spawn_calculation_thread(key, lifetime, &block)
+  def spawn(key, lifetime, &block)
     Thread.new do
-      synchronize_one(key) { calc(key, lifetime, &block) }
+      lock(key) { calc(key, lifetime, &block) }
     rescue StandardError => e
-      cleanup_failed_key(key)
-      raise e
+      cleanup(key)
+      raise(e)
     end
   end
 
   # Cleans up a key after calculation failure
   # @param key [Object] The key to clean up
-  def cleanup_failed_key(key)
-    synchronize_all do
+  def cleanup(key)
+    sync do
       @hash.delete(key)
       @locks.delete(key)
     end
@@ -316,15 +312,15 @@ class Zache
   # @param key [Object] The key to retrieve
   # @param dirty [Boolean] Whether to return expired values
   # @return [Object] The cached value
-  def get_without_block(key, dirty)
-    synchronize_all do
+  def fetch(key, dirty)
+    sync do
       rec = @hash[key]
-      if expired_unsafe?(key)
+      if overdue?(key)
         return rec[:value] if dirty || @dirty
         @hash.delete(key)
         rec = nil
       end
-      raise 'The key is absent in the cache' if rec.nil?
+      raise(StandardError, 'The key is absent in the cache') if rec.nil?
       rec[:value]
     end
   end
@@ -336,13 +332,9 @@ class Zache
   # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
     rec = @hash[key]
-    rec = nil if expired_unsafe?(key)
+    rec = nil if overdue?(key)
     if rec.nil?
-      rec = {
-        value: yield,
-        start: Time.now,
-        lifetime: lifetime
-      }
+      rec = { value: yield, start: Time.now, lifetime: lifetime }
       @hash[key] = rec
     end
     rec[:value]
@@ -352,7 +344,7 @@ class Zache
   # This should only be called from within a synchronized block.
   # @param key [Object] The key to check in the cache
   # @return [Boolean] True if the key exists and is expired
-  def expired_unsafe?(key)
+  def overdue?(key)
     rec = @hash[key]
     !rec.nil? && rec[:lifetime] && rec[:start] < Time.now - rec[:lifetime]
   end
@@ -361,7 +353,7 @@ class Zache
   # @param block [Proc] The block to execute
   # @yield The block to execute in a synchronized context
   # @return [Object] The result of the block
-  def synchronize_all(&block)
+  def sync(&block)
     return yield unless @sync
     @mutex.synchronize(&block)
   end
@@ -371,11 +363,8 @@ class Zache
   # @param block [Proc] The block to execute
   # @yield The block to execute in a synchronized context
   # @return [Object] The result of the block
-  def synchronize_one(key, &block)
+  def lock(key, &block)
     return yield unless @sync
-    mtx = @mutex.synchronize do
-      @locks[key] ||= Mutex.new
-    end
-    mtx.synchronize(&block)
+    @mutex.synchronize { @locks[key] ||= Mutex.new }.synchronize(&block)
   end
 end

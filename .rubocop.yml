@@ -14,6 +14,7 @@ plugins:
   - rubocop-rake
   - rubocop-minitest
   - rubocop-performance
+  - rubocop-elegant
 Minitest/EmptyLineBeforeAssertionMethods:
   Enabled: false
 Minitest/AssertOperator:
@@ -38,4 +39,20 @@ Layout/EndOfLine:
   EnforcedStyle: lf
 Metrics/BlockLength:
   Max: 28
+Elegant/ClassInModule:
+  Exclude:
+    - 'lib/zache.rb'
+    - '**/test_*.rb'
+    - '**/*_test.rb'
+Elegant/GoodMethodName:
+  AllowedNames:
+    - remove_all
+    - remove_by
+    - test_fetches_multiple_keys_in_many_threads_in_dirty_mode
+    - run_concurrent_operations
+    - perform_cache_operation
+Elegant/NoRedundantVariable:
+  Exclude:
+    - '**/test_*.rb'
+    - '**/*_test.rb'
 require: []

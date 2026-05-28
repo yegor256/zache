@@ -20,9 +20,7 @@ Thread.report_on_exception = true
 class ZacheTest < Minitest::Test
   def test_caches
     z = Zache.new(sync: false)
-    first = z.get(:hey, lifetime: 5) { rand }
-    second = z.get(:hey) { rand }
-    assert_equal(first, second)
+    assert_equal(z.get(:hey, lifetime: 5) { rand }, z.get(:hey) { rand })
     assert_equal(1, z.size)
   end
 
@@ -35,15 +33,14 @@ class ZacheTest < Minitest::Test
   def test_caches_and_expires
     z = Zache.new
     first = z.get(:hey, lifetime: 0.01) { rand }
-    sleep 0.1
-    second = z.get(:hey) { rand }
-    refute_equal(first, second)
+    sleep(0.1)
+    refute_equal(first, z.get(:hey) { rand })
   end
 
   def test_calculates_age
     z = Zache.new
     z.get(:hey) { rand }
-    sleep 0.1
+    sleep(0.1)
     assert_operator(z.mtime(:hey), :<, Time.now - 0.05)
   end
 
@@ -57,16 +54,14 @@ class ZacheTest < Minitest::Test
   def test_key_exists
     z = Zache.new
     z.get(:hey) { rand }
-    exists_result = z.exists?(:hey)
-    not_exists_result = z.exists?(:bye)
-    assert(exists_result)
-    refute(not_exists_result)
+    assert(z.exists?(:hey))
+    refute(z.exists?(:bye))
   end
 
   def test_put_and_exists
     z = Zache.new
     z.put(:hey, 'hello', lifetime: 0.1)
-    sleep 0.2
+    sleep(0.2)
     refute(z.exists?(:hey))
   end
 
@@ -106,7 +101,7 @@ class ZacheTest < Minitest::Test
     Threads.new(300).assert(3000) do
       z.get(:hey) { rand }
       z.get(:bye, lifetime: 0.01) { rand }
-      sleep 0.1
+      sleep(0.1)
       z.clean
     end
     assert(z.exists?(:hey))
@@ -117,7 +112,7 @@ class ZacheTest < Minitest::Test
     z = Zache.new
     z.get(:hey) { rand }
     z.get(:bye, lifetime: 0.01) { rand }
-    sleep 0.1
+    sleep(0.1)
     z.clean
     assert(z.exists?(:hey))
     refute(z.exists?(:bye))
@@ -126,7 +121,7 @@ class ZacheTest < Minitest::Test
   def test_clean_size
     z = Zache.new
     z.get(:hey, lifetime: 0.01) { rand }
-    sleep 0.1
+    sleep(0.1)
     z.clean
     assert_empty(z)
   end
@@ -135,15 +130,14 @@ class ZacheTest < Minitest::Test
     z = Zache.new(sync: false)
     z.get(:hey) { rand }
     z.get(:bye, lifetime: 0.01) { rand }
-    sleep 0.1
+    sleep(0.1)
     z.clean
     assert(z.exists?(:hey))
     refute(z.exists?(:bye))
   end
 
   def test_remove_absent_key
-    z = Zache.new
-    z.remove(:hey)
+    Zache.new.remove(:hey)
   end
 
   def test_check_and_remove
@@ -191,7 +185,7 @@ class ZacheTest < Minitest::Test
 
   def test_sync_zache_is_not_reentrant
     z = Zache.new
-    assert_raises ThreadError do
+    assert_raises(ThreadError) do
       z.get(:first) { z.get(:first) { 1 } }
     end
   end
@@ -203,13 +197,14 @@ class ZacheTest < Minitest::Test
 
   def test_calculates_only_once
     z = Zache.new
-    long = Thread.start do
-      z.get(:x) do
-        sleep 0.5
-        'first'
+    long =
+      Thread.start do
+        z.get(:x) do
+          sleep(0.5)
+          'first'
+        end
       end
-    end
-    sleep 0.1
+    sleep(0.1)
     assert(z.locked?(:x))
     z.get(:x) { 'second' }
     refute(z.locked?(:x))
@@ -228,13 +223,14 @@ class ZacheTest < Minitest::Test
   def test_returns_dirty_result
     z = Zache.new(dirty: true)
     z.get(:x, lifetime: 0) { 1 }
-    long = Thread.start do
-      z.get(:x) do
-        sleep 1000
-        2
+    long =
+      Thread.start do
+        z.get(:x) do
+          sleep(1000)
+          2
+        end
       end
-    end
-    sleep 0.1
+    sleep(0.1)
     Timeout.timeout(1) do
       assert(z.exists?(:x))
       assert(z.expired?(:x))
@@ -283,29 +279,29 @@ class ZacheTest < Minitest::Test
 
   def test_rethrows
     z = Zache.new
-    assert_raises RuntimeError do
-      z.get(:hey) { raise 'intentional' }
+    assert_raises(RuntimeError) do
+      z.get(:hey) { raise(RuntimeError, 'intentional') }
     end
   end
 
   def test_returns_placeholder_in_eager_mode
     z = Zache.new
-    a = z.get(:me, placeholder: 42, eager: true) do
-      sleep 0.1
-      43
-    end
+    a =
+      z.get(:me, placeholder: 42, eager: true) do
+        sleep(0.1)
+        43
+      end
     assert_equal(42, a)
-    sleep 0.2
-    b = z.get(:me)
-    assert_equal(43, b)
+    sleep(0.2)
+    assert_equal(43, z.get(:me))
   end
 
   def test_returns_placeholder_and_releases_lock
     z = Zache.new
     z.get(:slow, placeholder: 42, eager: true) do
-      sleep 9999
+      sleep(9999)
     end
-    sleep 0.1
+    sleep(0.1)
     assert_equal(555, z.get(:fast) { 555 })
   end
 
@@ -331,8 +327,6 @@ class ZacheTest < Minitest::Test
     z.put(:key1, 'value1', lifetime: 10)
     errors = Concurrent::Array.new
     threads = []
-
-    # Thread continuously calling get
     10.times do
       threads << Thread.new do
         100.times do
@@ -341,19 +335,16 @@ class ZacheTest < Minitest::Test
           rescue StandardError => e
             errors << e
           end
-          sleep 0.001
+          sleep(0.001)
         end
       end
     end
-
-    # Thread continuously calling remove_all
     threads << Thread.new do
       100.times do
         z.remove_all
-        sleep 0.001
+        sleep(0.001)
       end
     end
-
     threads.each(&:join)
     assert_empty(errors, "Race condition errors: #{errors.map(&:message).join(', ')}")
   end
@@ -362,17 +353,9 @@ class ZacheTest < Minitest::Test
   def test_locks_cleaned_up_after_remove
     z = Zache.new
     100.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
-
-    # Verify locks exist (indirectly by checking size doesn't cause issues)
     assert_equal(100, z.size)
-
-    # Remove half the keys
     50.times { |i| z.remove(:"key#{i}") }
-
-    # Verify cache still works and no memory leak symptoms
     assert_equal(50, z.size)
-
-    # Add new keys with same names - should not have stale locks
     50.times { |i| z.put(:"key#{i}", "new_value#{i}", lifetime: 10) }
     assert_equal(100, z.size)
   end
@@ -381,11 +364,8 @@ class ZacheTest < Minitest::Test
   def test_locks_cleaned_up_after_remove_all
     z = Zache.new
     1000.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
-
     z.remove_all
     assert_equal(0, z.size)
-
-    # Should be able to use cache normally after remove_all
     100.times do |i|
       z.get(:"newkey#{i}") { "value#{i}" }
     end
@@ -396,11 +376,7 @@ class ZacheTest < Minitest::Test
   def test_locks_cleaned_up_after_remove_by
     z = Zache.new
     100.times { |i| z.put(:"key#{i}", "value#{i}", lifetime: 10) }
-
-    removed = z.remove_by { |k| k.to_s.end_with?('0', '2', '4', '6', '8') }
-    assert_operator(removed, :>, 0)
-
-    # Cache should continue working normally
+    assert_operator(z.remove_by { |k| k.to_s.end_with?('0', '2', '4', '6', '8') }, :>, 0)
     z.get(:new_key) { 'new_value' }
     assert(z.exists?(:new_key))
   end
@@ -410,12 +386,8 @@ class ZacheTest < Minitest::Test
     z = Zache.new
     50.times { |i| z.put(:"expire#{i}", "value#{i}", lifetime: 0.01) }
     50.times { |i| z.put(:"keep#{i}", "value#{i}", lifetime: 100) }
-
-    sleep 0.1
-    cleaned = z.clean
-    assert_operator(cleaned, :>=, 50)
-
-    # Verify cache works after cleaning
+    sleep(0.1)
+    assert_operator(z.clean, :>=, 50)
     assert_equal(50, z.size)
     z.get(:new_after_clean) { 'value' }
     assert(z.exists?(:new_after_clean))
@@ -425,19 +397,17 @@ class ZacheTest < Minitest::Test
   def test_dirty_mode_nil_safety
     z = Zache.new(dirty: true)
     errors = Concurrent::Array.new
-
     threads = []
     threads << Thread.new do
       10.times do
         z.get(:key, lifetime: 0) do
-          sleep 0.01
+          sleep(0.01)
           'value'
         end
       rescue StandardError => e
         errors << e
       end
     end
-
     threads << Thread.new do
       10.times do
         begin
@@ -445,10 +415,9 @@ class ZacheTest < Minitest::Test
         rescue StandardError => e
           errors << e
         end
-        sleep 0.005
+        sleep(0.005)
       end
     end
-
     threads.each(&:join)
     assert_empty(errors, "Dirty mode errors: #{errors.map(&:message).join(', ')}")
   end
@@ -456,20 +425,18 @@ class ZacheTest < Minitest::Test
   # Test eager mode error handling
   def test_eager_mode_with_error_in_block
     z = Zache.new
-    result = z.get(:error_key, eager: true, placeholder: 'placeholder') do
-      raise 'Intentional error in eager block'
-    end
-
+    result =
+      z.get(:error_key, eager: true, placeholder: 'placeholder') do
+        raise(StandardError, 'Intentional error in eager block')
+      end
     assert_equal('placeholder', result)
-    sleep 0.1
-
-    # Key should be removed after error, allowing retry
-    new_result = z.get(:error_key, eager: true, placeholder: 'placeholder2') do
-      'success'
-    end
-    assert_equal('placeholder2', new_result)
-
-    sleep 0.1
+    sleep(0.1)
+    second =
+      z.get(:error_key, eager: true, placeholder: 'placeholder2') do
+        'success'
+      end
+    assert_equal('placeholder2', second)
+    sleep(0.1)
     assert_equal('success', z.get(:error_key))
   end
 
@@ -478,33 +445,29 @@ class ZacheTest < Minitest::Test
     z = Zache.new
     errors = Concurrent::Array.new
     threads = []
-
     20.times do |i|
       threads << Thread.new do
         50.times do |j|
           key = :"key#{i}_#{j}"
           z.get(key) do
-            sleep 0.0001
+            sleep(0.0001)
             "value#{i}_#{j}"
           end
         rescue NoMethodError => e
           errors << e
         rescue StandardError
-          # Ignore other errors for this specific test
+          nil
         end
       end
     end
-
     threads << Thread.new do
       50.times do
         z.remove_all
-        sleep 0.001
+        sleep(0.001)
       end
     end
-
     threads.each(&:join)
-    error_details = errors.map { |e| "#{e.message}\n#{e.backtrace.first(3).join("\n")}" }.join("\n\n")
-    assert_empty(errors, "NoMethodError occurred: #{error_details}")
+    assert_empty(errors, "NoMethodError occurred: #{errors.map(&:message).join(', ')}")
   end
 
   # Test that synchronize_one returns correct mutex
@@ -512,22 +475,18 @@ class ZacheTest < Minitest::Test
     z = Zache.new
     counter = 0
     threads = []
-
     10.times do
       threads << Thread.new do
         100.times do
           z.get(:counter) do
-            current = counter
-            sleep 0.0001
-            counter = current + 1
+            sleep(0.0001)
+            counter += 1
             counter
           end
         end
       end
     end
-
     threads.each(&:join)
-    # With proper locking, counter should be 1 (only calculated once, then cached)
     assert_equal(1, z.size)
   end
 
@@ -540,8 +499,7 @@ class ZacheTest < Minitest::Test
   def run_concurrent_operations(cache, thread_count:, iterations:, key_range:)
     errors = Concurrent::Array.new
     Threads.new(thread_count).assert(iterations) do |i|
-      key = i % key_range
-      perform_cache_operation(cache, i, key)
+      perform_cache_operation(cache, i, i % key_range)
     rescue StandardError => e
       errors << e
     end
