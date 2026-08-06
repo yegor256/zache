@@ -48,6 +48,12 @@ class Zache
       false
     end
 
+    # Returns a fixed size of 0.
+    # @return [Integer] Always returns 0
+    def bytesize
+      0
+    end
+
     # No-op method that ignores the input.
     # @return [nil] Always returns nil
     def put(*); end
@@ -84,6 +90,7 @@ class Zache
     @dirty = dirty
     @mutex = Mutex.new
     @locks = {}
+    @bytesize = 0
   end
 
   # Total number of keys currently in cache.
@@ -91,6 +98,14 @@ class Zache
   # @return [Integer] Number of keys in the cache
   def size
     sync { @hash.size }
+  end
+
+  # Total bytesize of all values currently in cache. Maintained
+  # incrementally on every write/remove, so this is O(1).
+  #
+  # @return [Integer] Sum of the bytesize of all cached values
+  def bytesize
+    sync { @bytesize }
   end
 
   # Gets the value from the cache by the provided key.
@@ -177,9 +192,7 @@ class Zache
   # @param lifetime [Integer] Time in seconds until the key expires (default: never expires)
   # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
-    lock(key) do
-      sync { @hash[key] = { value: value, start: Time.now, lifetime: lifetime } }
-    end
+    lock(key) { write(key, value, lifetime) }
     value
   end
 
@@ -193,6 +206,7 @@ class Zache
     result =
       lock(key) do
         rec = @hash.delete(key)
+        @bytesize -= rec[:bytesize] if rec
         rec.nil? ? (yield if block_given?) : rec[:value]
       end
     sync do
@@ -208,6 +222,7 @@ class Zache
     sync do
       @hash = {}
       @locks = {}
+      @bytesize = 0
     end
   end
 
@@ -219,12 +234,15 @@ class Zache
   def remove_by
     sync do
       count = 0
+      freed = 0
       @hash.each_key do |k|
         next unless yield(k)
+        freed += @hash[k][:bytesize]
         @hash.delete(k)
         @locks.delete(k)
         count += 1
       end
+      @bytesize -= freed
       count
     end
   end
@@ -236,14 +254,17 @@ class Zache
   def clean
     sync do
       count = 0
-      @hash.delete_if do |key, _value|
+      freed = 0
+      @hash.delete_if do |key, rec|
         expired = overdue?(key)
         if expired
+          freed += rec[:bytesize]
           @locks.delete(key)
           count += 1
         end
         expired
       end
+      @bytesize -= freed
       count
     end
   end
@@ -321,7 +342,8 @@ class Zache
   # @param key [Object] The key to clean up
   def cleanup(key)
     sync do
-      @hash.delete(key)
+      rec = @hash.delete(key)
+      @bytesize -= rec[:bytesize] if rec
       @locks.delete(key)
     end
   end
@@ -350,11 +372,23 @@ class Zache
   # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
     rec = sync { overdue?(key) ? nil : @hash[key] }
-    if rec.nil?
-      value = yield
-      rec = sync { @hash[key] = { value: value, start: Time.now, lifetime: lifetime } }
-    end
+    rec = write(key, yield, lifetime) if rec.nil?
     rec[:value]
+  end
+
+  # Stores a value under the given key, keeping @bytesize in sync with
+  # whatever was there before (if anything).
+  # @param key [Object] The key to store the value under
+  # @param value [Object] The value to store
+  # @param lifetime [Integer] Time in seconds until the key expires
+  # @return [Hash] The newly stored record
+  def write(key, value, lifetime)
+    size = value.respond_to?(:bytesize) ? value.bytesize : value.to_s.bytesize
+    old = @hash[key]
+    rec = { value: value, start: Time.now, lifetime: lifetime, bytesize: size }
+    @hash[key] = rec
+    sync { @bytesize += size - (old ? old[:bytesize] : 0) }
+    rec
   end
 
   # Internal method that checks if a key is expired without acquiring locks.
