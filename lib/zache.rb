@@ -288,21 +288,20 @@ class Zache
   # @yield Block that provides the value
   # @return [Object] The placeholder value
   def eager(key, lifetime, placeholder, &block)
-    refresh = false
-    result =
-      sync do
-        entry = @hash[key]
-        if entry && (entry[:refreshing] || !overdue?(key))
-          entry[:value]
-        else
-          @hash[key] = { value: placeholder, start: Time.now, lifetime: 0, refreshing: true }
-          refresh = true
-          placeholder
-        end
-      end
-    return result unless refresh
-    spawn(key, lifetime, &block)
+    result, refresh = sync { reserve(key, placeholder) }
+    spawn(key, lifetime, &block) if refresh
     result
+  end
+
+  # Reserves an eager refresh or returns the available cached value
+  # @param key [Object] The key to retrieve
+  # @param placeholder [Object] The placeholder to store during refresh
+  # @return [Array] The result and whether a refresh was reserved
+  def reserve(key, placeholder)
+    entry = @hash[key]
+    return [entry[:value], false] if entry && (entry[:refreshing] || !overdue?(key))
+    @hash[key] = { value: placeholder, start: Time.now, lifetime: 0, refreshing: true }
+    [placeholder, true]
   end
 
   # Spawns a background thread to calculate the value
