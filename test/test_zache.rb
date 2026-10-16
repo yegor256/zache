@@ -118,6 +118,31 @@ class ZacheTest < Minitest::Test
     refute(z.exists?(:bye))
   end
 
+  def test_bytesize_increases_on_put
+    z = Zache.new
+    assert_equal(0, z.bytesize)
+    z.put(:hey, 'abc')
+    assert_equal(3, z.bytesize)
+    z.put(:bye, 'de')
+    assert_equal(5, z.bytesize)
+  end
+
+  def test_bytesize_decreases_on_remove
+    z = Zache.new
+    z.put(:hey, 'abc')
+    z.put(:bye, 'de')
+    z.remove(:hey)
+    assert_equal(2, z.bytesize)
+  end
+
+  def test_bytesize_is_zero_after_clean
+    z = Zache.new
+    z.put(:hey, 'abc', lifetime: 0.01)
+    sleep(0.1)
+    z.clean
+    assert_equal(0, z.bytesize)
+  end
+
   def test_clean_size
     z = Zache.new
     z.get(:hey, lifetime: 0.01) { rand }
