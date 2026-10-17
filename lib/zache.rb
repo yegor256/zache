@@ -35,10 +35,10 @@ class Zache
       yield
     end
 
-    # Always returns true regardless of the key.
-    # @return [Boolean] Always returns true
+    # Always returns false because no values are cached.
+    # @return [Boolean] Always returns false
     def exists?(*)
-      true
+      false
     end
 
     # Always returns false.
@@ -167,7 +167,7 @@ class Zache
   # @param [Object] key The key to check
   # @return [Boolean] True if the cache is locked
   def locked?(key)
-    sync { @locks[key]&.locked? }
+    sync { @locks.key?(key) && @locks[key].locked? }
   end
 
   # Put a value into the cache.
@@ -178,8 +178,9 @@ class Zache
   # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
     lock(key) do
-      @hash[key] = { value: value, start: Time.now, lifetime: lifetime }
+      sync { @hash[key] = { value: value, start: Time.now, lifetime: lifetime } }
     end
+    value
   end
 
   # Removes the value from the cache, by the provided key. If the key is absent
@@ -189,8 +190,15 @@ class Zache
   # @yield Block to call if the key is not found
   # @return [Object] The removed value or the result of the block
   def remove(key)
-    lock(key) { @hash.delete(key) { yield if block_given? } }
-    sync { @locks.delete(key) }
+    result =
+      lock(key) do
+        rec = @hash.delete(key)
+        rec.nil? ? (yield if block_given?) : rec[:value]
+      end
+    sync do
+      @locks.delete(key)
+      result
+    end
   end
 
   # Remove all keys from the cache.
@@ -280,10 +288,20 @@ class Zache
   # @yield Block that provides the value
   # @return [Object] The placeholder value
   def eager(key, lifetime, placeholder, &block)
-    return sync { @hash[key][:value] } if sync { @hash.key?(key) }
-    put(key, placeholder, lifetime: 0)
-    spawn(key, lifetime, &block)
-    placeholder
+    result, refresh = sync { reserve(key, placeholder) }
+    spawn(key, lifetime, &block) if refresh
+    result
+  end
+
+  # Reserves an eager refresh or returns the available cached value
+  # @param key [Object] The key to retrieve
+  # @param placeholder [Object] The placeholder to store during refresh
+  # @return [Array] The result and whether a refresh was reserved
+  def reserve(key, placeholder)
+    entry = @hash[key]
+    return [entry[:value], false] if entry && (entry[:refreshing] || !overdue?(key))
+    @hash[key] = { value: placeholder, start: Time.now, lifetime: 0, refreshing: true }
+    [placeholder, true]
   end
 
   # Spawns a background thread to calculate the value
@@ -331,11 +349,10 @@ class Zache
   # @yield Block that provides the value if not cached
   # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
-    rec = @hash[key]
-    rec = nil if overdue?(key)
+    rec = sync { overdue?(key) ? nil : @hash[key] }
     if rec.nil?
-      rec = { value: yield, start: Time.now, lifetime: lifetime }
-      @hash[key] = rec
+      value = yield
+      rec = sync { @hash[key] = { value: value, start: Time.now, lifetime: lifetime } }
     end
     rec[:value]
   end
