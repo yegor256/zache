@@ -140,6 +140,37 @@ class ZacheTest < Minitest::Test
     Zache.new.remove(:hey)
   end
 
+  def test_remove_returns_value_or_fallback
+    z = Zache.new
+    z.put(:present, 42)
+    removed = z.remove(:present)
+    fallback = z.remove(:missing) { :default }
+    assert_equal([42, :default], [removed, fallback])
+    refute(z.instance_variable_get(:@locks).key?(:present))
+    refute(z.instance_variable_get(:@locks).key?(:missing))
+  end
+
+  def test_remove_returns_object_without_tapping_it
+    z = Zache.new
+    value = Object.new
+    value.define_singleton_method(:tap) { :wrong }
+    z.put(:key, value)
+    assert_same(value, z.remove(:key))
+    basic = BasicObject.new
+    z.put(:basic, basic)
+    assert_same(basic, z.remove(:basic))
+  end
+
+  def test_reentrant_remove_keeps_outer_lock
+    z = Zache.new
+    z.get(:key) do
+      assert_raises(ThreadError) { z.remove(:key) }
+      assert(z.locked?(:key))
+      :fresh
+    end
+    assert_equal(:fresh, z.get(:key))
+  end
+
   def test_check_and_remove
     z = Zache.new
     z.get(:hey, lifetime: -1) { rand }
@@ -183,6 +214,24 @@ class ZacheTest < Minitest::Test
     assert_equal(123, z.get(:hey))
   end
 
+  def test_put_returns_the_caller_value
+    z = Zache.new
+    value = { answer: 42 }
+    assert_same(value, z.put(:hey, value))
+    assert_same(value, z.get(:hey))
+  end
+
+  def test_unsynced_calc_keeps_its_result
+    z = Zache.new(sync: false)
+    result =
+      z.get(:key) do
+        z.put(:key, :side_effect)
+        :calculated
+      end
+    assert_equal(:calculated, result)
+    assert_equal(:calculated, z.get(:key))
+  end
+
   def test_sync_zache_is_not_reentrant
     z = Zache.new
     assert_raises(ThreadError) do
@@ -218,6 +267,10 @@ class ZacheTest < Minitest::Test
       'done'
     end
     refute(z.locked?(:x))
+  end
+
+  def test_missing_key_is_not_locked
+    assert_same(false, Zache.new.locked?(:missing))
   end
 
   def test_returns_dirty_result
@@ -277,6 +330,12 @@ class ZacheTest < Minitest::Test
     assert_equal(1, z.get(:x) { 1 })
   end
 
+  def test_fake_does_not_report_stored_keys
+    z = Zache::Fake.new
+    z.get(:x) { 1 }
+    assert_same(false, z.exists?(:x))
+  end
+
   def test_rethrows
     z = Zache.new
     assert_raises(RuntimeError) do
@@ -294,6 +353,85 @@ class ZacheTest < Minitest::Test
     assert_equal(42, a)
     sleep(0.2)
     assert_equal(43, z.get(:me))
+  end
+
+  def test_eager_refreshes_expired_value
+    z = Zache.new
+    z.put(:key, :stale, lifetime: -1)
+    started = Queue.new
+    release = Queue.new
+    begin
+      result =
+        Timeout.timeout(1) do
+          z.get(:key, placeholder: :loading, eager: true) do
+            started << Thread.current
+            release.pop
+            :fresh
+          end
+        end
+      assert_equal(:loading, result)
+      worker = Timeout.timeout(1) { started.pop }
+    ensure
+      release << true
+    end
+    Timeout.timeout(1) { worker.join }
+    assert_equal(:fresh, z.get(:key))
+  end
+
+  def test_eager_hit_returns_object_without_tapping_it
+    z = Zache.new
+    value = Object.new
+    value.define_singleton_method(:tap) { :wrong }
+    z.put(:key, value)
+    assert_same(value, z.get(:key, eager: true) { :unexpected })
+  end
+
+  def test_eager_miss_avoids_tap
+    z = Zache.new
+    placeholder = Object.new
+    placeholder.define_singleton_method(:tap) { :wrong }
+    started = Queue.new
+    result =
+      z.get(:key, eager: true, placeholder: placeholder) do
+        started << Thread.current
+        :fresh
+      end
+    assert_same(placeholder, result)
+    Timeout.timeout(1) { started.pop.join }
+    assert_equal(:fresh, z.get(:key))
+  end
+
+  def test_eager_race_returns_placeholder
+    z = Zache.new
+    z.put(:key, :stale, lifetime: -1)
+    observed = Queue.new
+    gate(z, :sync, observed)
+    started = Queue.new
+    release = Queue.new
+    calc =
+      proc do
+        started << Thread.current
+        release.pop
+        :fresh
+      end
+    begin
+      first = caller(z, calc)
+      Timeout.timeout(1) { observed.pop }
+      second = caller(z, calc)
+      Timeout.timeout(1) { observed.pop }
+      worker = checkrace(z, first, second, started)
+    ensure
+      unblock(first, second, worker, release)
+    end
+    assert_equal(:fresh, z.get(:key))
+  end
+
+  def test_eager_keeps_racing_put
+    publication(:put)
+  end
+
+  def test_eager_keeps_racing_calculation
+    publication(:calc)
   end
 
   def test_returns_placeholder_and_releases_lock
@@ -491,6 +629,117 @@ class ZacheTest < Minitest::Test
   end
 
   private
+
+  def gate(target, name, observed)
+    original = target.method(name)
+    target.define_singleton_method(name) do |*args, &block|
+      result = original.call(*args, &block)
+      gate = Thread.current[:eager_gate]
+      if gate
+        observed << Thread.current
+        gate.pop
+        Thread.current[:eager_gate] = nil
+      end
+      result
+    end
+  end
+
+  def gatewriter(cache, held, release)
+    mutex = cache.instance_variable_get(:@locks)[:key]
+    original = mutex.method(:synchronize)
+    mutex.define_singleton_method(:synchronize) do |&block|
+      original.call do
+        if Thread.current[:writer_gate]
+          held << true
+          release.pop
+        end
+        block.call
+      end
+    end
+  end
+
+  def watchspawn(cache, spawned)
+    original = cache.method(:spawn)
+    cache.define_singleton_method(:spawn) do |*args, &block|
+      original.call(*args, &block).tap { |thread| spawned << thread }
+    end
+  end
+
+  def startwriter(cache, mode, held)
+    thread =
+      Thread.new do
+        Thread.current[:writer_gate] = true
+        mode == :put ? cache.put(:key, :fresh) : cache.get(:key) { :fresh }
+      end
+    Timeout.timeout(1) { held.pop }
+    thread
+  end
+
+  def verifywrite(cache, writer, eager, spawned, calls)
+    Timeout.timeout(1) { [writer.value, eager.value] }
+    worker = Timeout.timeout(1) { spawned.pop }
+    Timeout.timeout(1) { worker.value }
+    assert_equal(:fresh, cache.get(:key))
+    assert_equal(0, calls.size)
+    worker
+  end
+
+  def publication(mode)
+    cache = Zache.new
+    cache.put(:key, :stale, lifetime: -1)
+    held = Queue.new
+    release = Queue.new
+    seen = Queue.new
+    spawned = Queue.new
+    calls = Queue.new
+    gatewriter(cache, held, release)
+    gate(cache, :overdue?, seen)
+    watchspawn(cache, spawned)
+    begin
+      writer = startwriter(cache, mode, held)
+      eager = caller(cache, proc { calls << :wrong })
+      Timeout.timeout(1) { seen.pop }
+      release << true
+      refute(writer.join(0.2), 'writer published while eager held the global mutex')
+      eager[:eager_gate] << true
+      worker = verifywrite(cache, writer, eager, spawned, calls)
+    ensure
+      release << true
+      eager[:eager_gate]&.push(true) if eager
+      [writer, eager, worker].compact.each { |thread| thread.join(1) }
+    end
+  end
+
+  def caller(cache, calc)
+    Thread.new do
+      Thread.current[:eager_gate] = Queue.new
+      cache.get(:key, eager: true, placeholder: :loading, &calc)
+    end
+  end
+
+  def prompt(thread)
+    Timeout.timeout(1) { thread.value }
+  rescue Timeout::Error
+    flunk('eager caller blocked behind a refresh it observed late')
+  end
+
+  def checkrace(cache, first, second, started)
+    threads = Thread.list
+    second[:eager_gate] << true
+    assert_equal(:loading, Timeout.timeout(1) { second.value })
+    first[:eager_gate] << true
+    assert_equal(:loading, prompt(first))
+    worker = Timeout.timeout(1) { started.pop }
+    assert_equal(:loading, Timeout.timeout(1) { cache.get(:key, eager: true, placeholder: :other) { :wrong } })
+    assert_equal([worker], Thread.list - threads)
+    worker
+  end
+
+  def unblock(first, second, worker, release)
+    [first, second].compact.each { |thread| thread[:eager_gate]&.push(true) }
+    release << true
+    [first, second, worker].compact.each { |thread| thread.join(1) }
+  end
 
   def rand
     SecureRandom.uuid
