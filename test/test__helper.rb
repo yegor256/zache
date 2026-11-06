@@ -7,7 +7,7 @@ $stdout.sync = true
 
 require 'simplecov'
 require 'simplecov-cobertura'
-unless SimpleCov.running || ENV['PICKS']
+unless SimpleCov.coverage_running? || ENV['PICKS']
   SimpleCov.command_name('test')
   SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
     [
