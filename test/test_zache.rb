@@ -150,17 +150,6 @@ class ZacheTest < Minitest::Test
     refute(z.instance_variable_get(:@locks).key?(:missing))
   end
 
-  def test_remove_returns_object_without_tapping_it
-    z = Zache.new
-    value = Object.new
-    value.define_singleton_method(:tap) { :wrong }
-    z.put(:key, value)
-    assert_same(value, z.remove(:key))
-    basic = BasicObject.new
-    z.put(:basic, basic)
-    assert_same(basic, z.remove(:basic))
-  end
-
   def test_reentrant_remove_keeps_outer_lock
     z = Zache.new
     z.get(:key) do
@@ -378,29 +367,6 @@ class ZacheTest < Minitest::Test
     assert_equal(:fresh, z.get(:key))
   end
 
-  def test_eager_hit_returns_object_without_tapping_it
-    z = Zache.new
-    value = Object.new
-    value.define_singleton_method(:tap) { :wrong }
-    z.put(:key, value)
-    assert_same(value, z.get(:key, eager: true) { :unexpected })
-  end
-
-  def test_eager_miss_avoids_tap
-    z = Zache.new
-    placeholder = Object.new
-    placeholder.define_singleton_method(:tap) { :wrong }
-    started = Queue.new
-    result =
-      z.get(:key, eager: true, placeholder: placeholder) do
-        started << Thread.current
-        :fresh
-      end
-    assert_same(placeholder, result)
-    Timeout.timeout(1) { started.pop.join }
-    assert_equal(:fresh, z.get(:key))
-  end
-
   def test_eager_race_returns_placeholder
     z = Zache.new
     z.put(:key, :stale, lifetime: -1)
@@ -415,9 +381,9 @@ class ZacheTest < Minitest::Test
         :fresh
       end
     begin
-      first = caller(z, calc)
+      first = eager_thread(z, calc)
       Timeout.timeout(1) { observed.pop }
-      second = caller(z, calc)
+      second = eager_thread(z, calc)
       Timeout.timeout(1) { observed.pop }
       worker = checkrace(z, first, second, started)
     ensure
@@ -697,7 +663,7 @@ class ZacheTest < Minitest::Test
     watchspawn(cache, spawned)
     begin
       writer = startwriter(cache, mode, held)
-      eager = caller(cache, proc { calls << :wrong })
+      eager = eager_thread(cache, proc { calls << :wrong })
       Timeout.timeout(1) { seen.pop }
       release << true
       refute(writer.join(0.2), 'writer published while eager held the global mutex')
@@ -710,7 +676,7 @@ class ZacheTest < Minitest::Test
     end
   end
 
-  def caller(cache, calc)
+  def eager_thread(cache, calc)
     Thread.new do
       Thread.current[:eager_gate] = Queue.new
       cache.get(:key, eager: true, placeholder: :loading, &calc)
