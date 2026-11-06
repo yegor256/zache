@@ -381,9 +381,9 @@ class ZacheTest < Minitest::Test
         :fresh
       end
     begin
-      first = eager_thread(z, calc)
+      first = starteager(z, calc)
       Timeout.timeout(1) { observed.pop }
-      second = eager_thread(z, calc)
+      second = starteager(z, calc)
       Timeout.timeout(1) { observed.pop }
       worker = checkrace(z, first, second, started)
     ensure
@@ -663,7 +663,7 @@ class ZacheTest < Minitest::Test
     watchspawn(cache, spawned)
     begin
       writer = startwriter(cache, mode, held)
-      eager = eager_thread(cache, proc { calls << :wrong })
+      eager = starteager(cache, proc { calls << :wrong })
       Timeout.timeout(1) { seen.pop }
       release << true
       refute(writer.join(0.2), 'writer published while eager held the global mutex')
@@ -676,7 +676,7 @@ class ZacheTest < Minitest::Test
     end
   end
 
-  def eager_thread(cache, calc)
+  def starteager(cache, calc)
     Thread.new do
       Thread.current[:eager_gate] = Queue.new
       cache.get(:key, eager: true, placeholder: :loading, &calc)
