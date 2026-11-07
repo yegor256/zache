@@ -24,9 +24,9 @@ GEM
     loog (0.8.0)
       ellipsized
       logger (~> 1.0)
-    minitest (6.0.6)
+    minitest (6.1.0)
       drb (~> 2.0)
-      prism (~> 1.5)
+      prism (>= 1.5, < 3)
     minitest-reporters (1.8.0)
       ansi
       builder
