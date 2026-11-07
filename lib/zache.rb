@@ -115,7 +115,8 @@ class Zache
   # @return [Object] The cached value
   def get(key, lifetime: 2**32, dirty: false, placeholder: nil, eager: false, &block)
     if block_given?
-      return cached(key) if dirt?(key, dirty)
+      found, value = stale(key, dirty)
+      return value if found
       return eager(key, lifetime, placeholder, &block) if eager
       lock(key) { calc(key, lifetime, &block) }
     else
@@ -257,28 +258,14 @@ class Zache
 
   private
 
-  # Checks if dirty value should be returned for a locked key
-  # @param key [Object] The key to check
-  # @param dirty [Boolean] Whether dirty reads are allowed
-  # @return [Boolean] True if dirty value should be returned
-  def dirt?(key, dirty)
-    (dirty || @dirty) && locked?(key) && stale?(key)
-  end
-
-  # Checks if key has an expired value in cache
-  # @param key [Object] The key to check
-  # @return [Boolean] True if key exists and is expired
-  def stale?(key)
+  def stale(key, dirty)
+    return [false, nil] unless dirty || @dirty
     sync do
-      !@hash[key].nil? && overdue?(key)
+      return [false, nil] unless @locks.key?(key) && @locks[key].locked?
+      rec = @hash[key]
+      return [false, nil] if rec.nil? || !overdue?(key)
+      [true, rec[:value]]
     end
-  end
-
-  # Gets the dirty cached value without recalculation
-  # @param key [Object] The key to retrieve
-  # @return [Object] The cached value
-  def cached(key)
-    sync { @hash[key][:value] }
   end
 
   # Handles eager mode get operation

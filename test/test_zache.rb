@@ -302,6 +302,40 @@ class ZacheTest < Minitest::Test
     assert_equal(threads, set.size)
   end
 
+  def test_dirty_get_survives_concurrent_clean
+    z = Zache.new
+    z.put(:key, :stale, lifetime: -1)
+    release = Queue.new
+    holder = lockholder(z, release)
+    Timeout.timeout(1) { sleep(0.001) until z.locked?(:key) }
+    observed = Queue.new
+    resume = Queue.new
+    gatestalecheck(z, observed, resume)
+    errors = Concurrent::Array.new
+    reader = dirtyreader(z, errors)
+    begin
+      Timeout.timeout(1) { observed.pop }
+      z.clean
+      resume << true
+    rescue Timeout::Error
+      z.clean
+    end
+    reader.join
+    release << true
+    holder.join
+    assert_empty(errors, "Race condition errors: #{errors.map(&:message).join(', ')}")
+    assert_equal(:stale, reader.value)
+  end
+
+  def test_dirty_get_with_concurrent_clean_in_threads
+    z = Zache.new
+    z.put(:key, :stale, lifetime: -1)
+    errors = Concurrent::Array.new
+    barrier = Concurrent::CyclicBarrier.new(6)
+    soakdirtyget(z, barrier, errors).each(&:join)
+    assert_empty(errors, "Race condition errors: #{errors.map(&:message).join(', ')}")
+  end
+
   def test_fetches_multiple_keys_in_many_threads
     z = Zache.new
     set = Concurrent::Set.new
@@ -735,5 +769,72 @@ class ZacheTest < Minitest::Test
       else cache.get(key)
       end
     end
+  end
+
+  def lockholder(zache, release)
+    Thread.new do
+      zache.get(:key) do
+        release.pop
+        :fresh
+      end
+    end
+  end
+
+  def dirtyreader(zache, errors)
+    Thread.new do
+      Thread.current[:dirty_gate] = true
+      zache.get(:key, dirty: true) { :fresh }
+    rescue StandardError => e
+      errors << e
+    end
+  end
+
+  def gatestalecheck(zache, observed, resume)
+    original = zache.method(:sync)
+    counter = { calls: 0 }
+    zache.define_singleton_method(:sync) do |&block|
+      result = original.call(&block)
+      if Thread.current[:dirty_gate]
+        counter[:calls] += 1
+        if counter[:calls] == 2
+          observed << Thread.current
+          resume.pop
+          Thread.current[:dirty_gate] = nil
+        end
+      end
+      result
+    end
+  end
+
+  def soakdirtyget(zache, barrier, errors)
+    threads =
+      Array.new(4) do
+        Thread.new do
+          barrier.wait
+          300.times do
+            zache.get(:key, dirty: true) { :fresh }
+          rescue StandardError => e
+            errors << e
+          end
+        end
+      end
+    threads << Thread.new do
+      barrier.wait
+      600.times do
+        zache.get(:key, lifetime: -1) do
+          sleep(0.0005)
+          :fresh
+        end
+      rescue StandardError => e
+        errors << e
+      end
+    end
+    threads << Thread.new do
+      barrier.wait
+      600.times do
+        zache.clean
+      end
+    end
+    threads
   end
 end
