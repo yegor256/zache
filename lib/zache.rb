@@ -149,7 +149,7 @@ class Zache
     sync do
       rec = @hash[key]
       if overdue?(key) && !dirty && !@dirty
-        @hash.delete(key)
+        delete(key)
         rec = nil
       end
       !rec.nil?
@@ -192,7 +192,7 @@ class Zache
   # @param lifetime [Integer] Time in seconds until the key expires (default: never expires)
   # @return [Object] The value stored
   def put(key, value, lifetime: 2**32)
-    lock(key) { write(key, value, lifetime) }
+    lock(key) { sync { write(key, value, lifetime) } }
     value
   end
 
@@ -205,8 +205,7 @@ class Zache
   def remove(key)
     result =
       lock(key) do
-        rec = @hash.delete(key)
-        @bytesize -= rec[:bytesize] if rec
+        rec = sync { delete(key) }
         rec.nil? ? (yield if block_given?) : rec[:value]
       end
     sync do
@@ -321,7 +320,7 @@ class Zache
   def reserve(key, placeholder)
     entry = @hash[key]
     return [entry[:value], false] if entry && (entry[:refreshing] || !overdue?(key))
-    @hash[key] = { value: placeholder, start: Time.now, lifetime: 0, refreshing: true }
+    write(key, placeholder, 0)[:refreshing] = true
     [placeholder, true]
   end
 
@@ -342,8 +341,7 @@ class Zache
   # @param key [Object] The key to clean up
   def cleanup(key)
     sync do
-      rec = @hash.delete(key)
-      @bytesize -= rec[:bytesize] if rec
+      delete(key)
       @locks.delete(key)
     end
   end
@@ -357,7 +355,7 @@ class Zache
       rec = @hash[key]
       if overdue?(key)
         return rec[:value] if dirty || @dirty
-        @hash.delete(key)
+        delete(key)
         rec = nil
       end
       raise(StandardError, 'The key is absent in the cache') if rec.nil?
@@ -372,7 +370,10 @@ class Zache
   # @return [Object] The cached or newly calculated value
   def calc(key, lifetime)
     rec = sync { overdue?(key) ? nil : @hash[key] }
-    rec = write(key, yield, lifetime) if rec.nil?
+    if rec.nil?
+      value = yield
+      rec = sync { write(key, value, lifetime) }
+    end
     rec[:value]
   end
 
@@ -387,7 +388,13 @@ class Zache
     old = @hash[key]
     rec = { value: value, start: Time.now, lifetime: lifetime, bytesize: size }
     @hash[key] = rec
-    sync { @bytesize += size - (old ? old[:bytesize] : 0) }
+    @bytesize += size - (old ? old[:bytesize] : 0)
+    rec
+  end
+
+  def delete(key)
+    rec = @hash.delete(key)
+    @bytesize -= rec[:bytesize] if rec
     rec
   end
 
