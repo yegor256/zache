@@ -118,6 +118,75 @@ class ZacheTest < Minitest::Test
     refute(z.exists?(:bye))
   end
 
+  def test_bytesize_increases_on_put
+    z = Zache.new
+    assert_equal(0, z.bytesize)
+    z.put(:hey, 'abc')
+    assert_equal(3, z.bytesize)
+    z.put(:bye, 'de')
+    assert_equal(5, z.bytesize)
+  end
+
+  def test_bytesize_decreases_on_remove
+    z = Zache.new
+    z.put(:hey, 'abc')
+    z.put(:bye, 'de')
+    z.remove(:hey)
+    assert_equal(2, z.bytesize)
+  end
+
+  def test_bytesize_is_zero_after_clean
+    z = Zache.new
+    z.put(:hey, 'abc', lifetime: 0.01)
+    sleep(0.1)
+    z.clean
+    assert_equal(0, z.bytesize)
+  end
+
+  def test_bytesize_decreases_when_exists_expires_key
+    z = Zache.new
+    z.put(:hey, 'abc', lifetime: -1)
+    z.put(:bye, 'de')
+    refute(z.exists?(:hey))
+    assert_equal(1, z.size)
+    assert_equal(2, z.bytesize)
+  end
+
+  def test_bytesize_decreases_when_get_expires_key
+    z = Zache.new
+    z.put(:hey, 'abc', lifetime: -1)
+    z.put(:bye, 'de')
+    assert_raises(StandardError) { z.get(:hey) }
+    assert_equal(1, z.size)
+    assert_equal(2, z.bytesize)
+  end
+
+  def test_bytesize_after_concurrent_changes
+    z = Zache.new
+    barrier = Concurrent::CyclicBarrier.new(4)
+    threads =
+      (0...4).map do |worker|
+        Thread.new do
+          barrier.wait
+          1000.times do |i|
+            case worker
+            when 0 then z.put(i % 10, i.to_s, lifetime: -1)
+            when 1 then z.remove(i % 10)
+            when 2 then z.remove_all
+            else z.clean
+            end
+            Thread.pass
+          end
+        end
+      end
+    threads.each(&:value)
+    total =
+      (0...10).sum do |key|
+        z.exists?(key, dirty: true) ? z.get(key, dirty: true).bytesize : 0
+      end
+    assert_equal(total, z.bytesize)
+  end
+
   def test_clean_size
     z = Zache.new
     z.get(:hey, lifetime: 0.01) { rand }
@@ -360,11 +429,13 @@ class ZacheTest < Minitest::Test
         end
       assert_equal(:loading, result)
       worker = Timeout.timeout(1) { started.pop }
+      assert_equal(7, z.bytesize)
     ensure
       release << true
     end
     Timeout.timeout(1) { worker.join }
     assert_equal(:fresh, z.get(:key))
+    assert_equal(5, z.bytesize)
   end
 
   def test_eager_race_returns_placeholder
