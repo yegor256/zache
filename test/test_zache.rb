@@ -526,6 +526,19 @@ class ZacheTest < Minitest::Test
     assert_empty(errors, "Dirty mode errors: #{errors.map(&:message).join(', ')}")
   end
 
+  # Test dirty reads during concurrent cache deletion
+  def test_dirty_read_survives_concurrent_deletion
+    deletions = {
+      clean: lambda(&:clean),
+      remove_by: lambda do |cache|
+        cache.remove_by { |key| key == :key }
+      end,
+      remove_all: lambda(&:remove_all)
+    }
+    actual = deletions.transform_values { |delete| dirtyrace(delete) }
+    assert_equal({ clean: :stale, remove_by: :stale, remove_all: :stale }, actual)
+  end
+
   # Test eager mode error handling
   def test_eager_mode_with_error_in_block
     z = Zache.new
@@ -595,6 +608,55 @@ class ZacheTest < Minitest::Test
   end
 
   private
+
+  def gatedirt(cache, checked, release)
+    original = cache.method(:dirt?)
+    cache.define_singleton_method(:dirt?) do |*args, &block|
+      result = original.call(*args, &block)
+      checked << true
+      release.pop
+      result
+    end
+  end
+
+  def dirtyrace(delete)
+    cache = Zache.new
+    cache.put(:key, :stale, lifetime: -1)
+    calculating = Queue.new
+    calcrelease = Queue.new
+    checked = Queue.new
+    readrelease = Queue.new
+    writer = startcalc(cache, calculating, calcrelease)
+    Timeout.timeout(1) { calculating.pop }
+    gatedirt(cache, checked, readrelease)
+    reader = dirtyreader(cache)
+    Timeout.timeout(1) { checked.pop }
+    delete.call(cache)
+    readrelease << true
+    Timeout.timeout(1) { reader.value }
+  ensure
+    readrelease&.push(true)
+    calcrelease&.push(true)
+    [reader, writer].compact.each { |thread| thread.join(1) }
+  end
+
+  def startcalc(cache, calculating, release)
+    Thread.new do
+      cache.get(:key) do
+        calculating << true
+        release.pop
+        :fresh
+      end
+    end
+  end
+
+  def dirtyreader(cache)
+    Thread.new do
+      cache.get(:key, dirty: true) { :recomputed }
+    rescue StandardError => e
+      e
+    end
+  end
 
   def gate(target, name, observed)
     original = target.method(name)
